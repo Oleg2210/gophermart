@@ -83,7 +83,8 @@ func TestMemoryRepositoryCreateContextCanceled(t *testing.T) {
 func TestMemoryRepositoryGetByLoginContextCanceled(t *testing.T) {
 	repo := NewMemoryRepository()
 
-	ctx, _ := context.WithTimeout(context.Background(), time.Nanosecond)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
+	defer cancel()
 	time.Sleep(time.Millisecond)
 
 	_, err := repo.GetByLogin(ctx, "oleg")

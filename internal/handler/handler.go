@@ -40,8 +40,8 @@ func parseRequest(a *App, w http.ResponseWriter, r *http.Request) (string, strin
 	return req.Login, req.Password, nil
 }
 
-func setToken(userId string, a *App, w http.ResponseWriter, r *http.Request) {
-	token, err := tools.GenerateJWT(userId, config.AuthSecret, config.AuthTokenLife)
+func setToken(userID string, a *App, w http.ResponseWriter, r *http.Request) {
+	token, err := tools.GenerateJWT(userID, config.AuthSecret, config.AuthTokenLife)
 	if err != nil {
 		a.Logger.Error("failed to generate jwt", zap.Error(err))
 		http.Error(w, "internal error", http.StatusInternalServerError)

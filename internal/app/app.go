@@ -10,6 +10,7 @@ import (
 	"github.com/Oleg2210/gophermart/internal/domain/user"
 	"github.com/Oleg2210/gophermart/internal/handler"
 	authmiddleware "github.com/Oleg2210/gophermart/internal/middleware/auth_middleware"
+	loggingmiddleware "github.com/Oleg2210/gophermart/internal/middleware/logging_middleware"
 	"github.com/Oleg2210/gophermart/internal/repository/auth"
 	"github.com/Oleg2210/gophermart/internal/tools"
 	"github.com/go-chi/chi/v5"
@@ -39,12 +40,11 @@ func StartApp() {
 	router.Post("/api/user/register", app.HandleRegister)
 	router.Post("/api/user/login", app.HandleLogin)
 
+	router.Use(loggingmiddleware.LoggingMiddleware(logger))
 	router.Group(func(r chi.Router) {
 		r.Use(authmiddleware.AuthMiddleware([]byte(config.AuthSecret)))
 		r.Post("/api/user/orders", app.HandleRegisterOrder)
 	})
-
-	//router.Use(loggingmiddleware.LoggingMiddleware(logger))
 
 	server := &http.Server{
 		Addr:         config.RunAddress,

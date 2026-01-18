@@ -37,10 +37,10 @@ func StartApp() {
 	app := handler.App{UserService: userSerivce, Logger: logger}
 
 	router := chi.NewRouter()
+	router.Use(loggingmiddleware.LoggingMiddleware(logger))
 	router.Post("/api/user/register", app.HandleRegister)
 	router.Post("/api/user/login", app.HandleLogin)
 
-	router.Use(loggingmiddleware.LoggingMiddleware(logger))
 	router.Group(func(r chi.Router) {
 		r.Use(authmiddleware.AuthMiddleware([]byte(config.AuthSecret)))
 		r.Post("/api/user/orders", app.HandleRegisterOrder)

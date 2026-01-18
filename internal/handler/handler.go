@@ -95,3 +95,7 @@ func (a *App) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 	setToken(u.ID, a, w, r)
 }
+
+func (a *App) HandleRegisterOrder(w http.ResponseWriter, r *http.Request) {
+
+}

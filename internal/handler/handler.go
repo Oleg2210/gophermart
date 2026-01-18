@@ -17,27 +17,48 @@ type App struct {
 	Logger      *zap.Logger
 }
 
-func (a *App) HandleRegister(w http.ResponseWriter, r *http.Request) {
+func parseRequest(a *App, w http.ResponseWriter, r *http.Request) (string, string, error) {
 	body, err := io.ReadAll(r.Body)
 
 	if err != nil {
 		a.Logger.Error("failed to read request body", zap.Error(err))
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		return
+		return "", "", err
 	}
 
 	var req serializers.AuthRequest
 	if err := req.UnmarshalJSON(body); err != nil {
 		http.Error(w, "invalid json", http.StatusBadRequest)
-		return
+		return "", "", err
 	}
 
 	if req.Login == "" || req.Password == "" {
 		http.Error(w, "login and password required", http.StatusBadRequest)
+		return "", "", errors.New("login and password required")
+	}
+
+	return req.Login, req.Password, nil
+}
+
+func setToken(userId string, a *App, w http.ResponseWriter, r *http.Request) {
+	token, err := tools.GenerateJWT(userId, config.AuthSecret, config.AuthTokenLife)
+	if err != nil {
+		a.Logger.Error("failed to generate jwt", zap.Error(err))
+		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 
-	u, err := a.UserService.Register(r.Context(), req.Login, req.Password)
+	w.Header().Set("Authorization", "Bearer "+token)
+	w.WriteHeader(http.StatusOK)
+}
+
+func (a *App) HandleRegister(w http.ResponseWriter, r *http.Request) {
+	login, password, err := parseRequest(a, w, r)
+	if err != nil {
+		return
+	}
+
+	u, err := a.UserService.Register(r.Context(), login, password)
 
 	if err != nil {
 		if errors.Is(err, user.ErrLoginAlreadyExists) {
@@ -50,38 +71,16 @@ func (a *App) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := tools.GenerateJWT(u.ID, config.AuthSecret, config.AuthTokenLife)
-	if err != nil {
-		a.Logger.Error("failed to generate jwt", zap.Error(err))
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Authorization", "Bearer "+token)
-	w.WriteHeader(http.StatusOK)
+	setToken(u.ID, a, w, r)
 }
 
 func (a *App) HandleLogin(w http.ResponseWriter, r *http.Request) {
-	body, err := io.ReadAll(r.Body)
-
+	login, password, err := parseRequest(a, w, r)
 	if err != nil {
-		a.Logger.Error("failed to read request body", zap.Error(err))
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
-	var req serializers.AuthRequest
-	if err := req.UnmarshalJSON(body); err != nil {
-		http.Error(w, "invalid json", http.StatusBadRequest)
-		return
-	}
-
-	if req.Login == "" || req.Password == "" {
-		http.Error(w, "login and password required", http.StatusBadRequest)
-		return
-	}
-
-	u, err := a.UserService.Login(r.Context(), req.Login, req.Password)
+	u, err := a.UserService.Login(r.Context(), login, password)
 
 	if err != nil {
 		if errors.Is(err, user.ErrLoginDoesNotExist) || errors.Is(err, user.ErrLoginWrongPassword) {
@@ -94,13 +93,5 @@ func (a *App) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := tools.GenerateJWT(u.ID, config.AuthSecret, config.AuthTokenLife)
-	if err != nil {
-		a.Logger.Error("failed to generate jwt", zap.Error(err))
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Authorization", "Bearer "+token)
-	w.WriteHeader(http.StatusOK)
+	setToken(u.ID, a, w, r)
 }

@@ -29,15 +29,16 @@ func (service *AuthService) Register(ctx context.Context, login string, passowrd
 	return service.repo.Create(ctx, login, hashedPassowrd)
 }
 
-// func (service *AuthService) Login(login string, password string) error {
-// 	user, err := service.repo.GetByLogin(login)
+func (service *AuthService) Login(ctx context.Context, login string, password string) (entities.User, error) {
+	user, err := service.repo.GetByLogin(ctx, login)
 
-// 	if err != nil {
-// 		return err
-// 	}
+	if err != nil {
+		return entities.User{}, err
+	}
 
-// 	if !service.hasher.Compare(user.HashedPassword, password) {
-// 		return Error("dwadaw")
-// 	}
+	if !service.hasher.Compare(user.HashedPassword, password) {
+		return entities.User{}, ErrLoginWrongPassword
+	}
 
-// }
+	return user, nil
+}

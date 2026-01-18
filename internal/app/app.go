@@ -36,6 +36,7 @@ func StartApp() {
 
 	router := chi.NewRouter()
 	router.Post("/api/user/register", app.HandleRegister)
+	router.Post("/api/user/login", app.HandleLogin)
 
 	server := &http.Server{
 		Addr:         config.RunAddress,

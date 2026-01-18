@@ -17,7 +17,7 @@ var (
 	_ easyjson.Marshaler
 )
 
-func easyjsonA970e379DecodeGithubComOleg2210GophermartInternalSerializers(in *jlexer.Lexer, out *RegisterRequest) {
+func easyjsonA970e379DecodeGithubComOleg2210GophermartInternalSerializers(in *jlexer.Lexer, out *AuthRequest) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -53,7 +53,7 @@ func easyjsonA970e379DecodeGithubComOleg2210GophermartInternalSerializers(in *jl
 		in.Consumed()
 	}
 }
-func easyjsonA970e379EncodeGithubComOleg2210GophermartInternalSerializers(out *jwriter.Writer, in RegisterRequest) {
+func easyjsonA970e379EncodeGithubComOleg2210GophermartInternalSerializers(out *jwriter.Writer, in AuthRequest) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -71,25 +71,25 @@ func easyjsonA970e379EncodeGithubComOleg2210GophermartInternalSerializers(out *j
 }
 
 // MarshalJSON supports json.Marshaler interface
-func (v RegisterRequest) MarshalJSON() ([]byte, error) {
+func (v AuthRequest) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
 	easyjsonA970e379EncodeGithubComOleg2210GophermartInternalSerializers(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
-func (v RegisterRequest) MarshalEasyJSON(w *jwriter.Writer) {
+func (v AuthRequest) MarshalEasyJSON(w *jwriter.Writer) {
 	easyjsonA970e379EncodeGithubComOleg2210GophermartInternalSerializers(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
-func (v *RegisterRequest) UnmarshalJSON(data []byte) error {
+func (v *AuthRequest) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
 	easyjsonA970e379DecodeGithubComOleg2210GophermartInternalSerializers(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
-func (v *RegisterRequest) UnmarshalEasyJSON(l *jlexer.Lexer) {
+func (v *AuthRequest) UnmarshalEasyJSON(l *jlexer.Lexer) {
 	easyjsonA970e379DecodeGithubComOleg2210GophermartInternalSerializers(l, v)
 }

@@ -24,17 +24,17 @@ func (r *MemoryUserRepository) Create(ctx context.Context, login string, hashedP
 		}
 	}
 
-	userId := uuid.New().String()
+	userID := uuid.New().String()
 
 	user := entities.User{
-		ID:             userId,
+		ID:             userID,
 		Login:          login,
 		HashedPassword: hashedPassword,
 		Balance:        decimal.NewFromInt(0),
 		Withdraw:       decimal.NewFromInt(0),
 	}
 
-	r.tx.users[userId] = user
+	r.tx.users[userID] = user
 
 	return user, nil
 }

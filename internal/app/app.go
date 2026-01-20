@@ -7,18 +7,19 @@ import (
 	"time"
 
 	"github.com/Oleg2210/gophermart/internal/config"
-	"github.com/Oleg2210/gophermart/internal/domain/user"
+	domainrepository "github.com/Oleg2210/gophermart/internal/domain/domain_repository"
+	"github.com/Oleg2210/gophermart/internal/domain/services"
 	"github.com/Oleg2210/gophermart/internal/handler"
 	authmiddleware "github.com/Oleg2210/gophermart/internal/middleware/auth_middleware"
 	loggingmiddleware "github.com/Oleg2210/gophermart/internal/middleware/logging_middleware"
-	"github.com/Oleg2210/gophermart/internal/repository/auth"
+	"github.com/Oleg2210/gophermart/internal/repository/memory"
 	"github.com/Oleg2210/gophermart/internal/tools"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 )
 
-func chooseRepo() user.AuthRepository {
-	return auth.NewMemoryRepository()
+func chooseTransactionManager() domainrepository.TxManager {
+	return memory.NewMemTxManager()
 }
 
 func StartApp() {
@@ -30,11 +31,11 @@ func StartApp() {
 		os.Exit(1)
 	}
 
-	repo := chooseRepo()
+	txManager := chooseTransactionManager()
 	hasher := tools.NewBcryptHasher()
-	userSerivce := user.NewAuthService(hasher, repo)
+	serivce := services.NewService(hasher, txManager)
 
-	app := handler.App{UserService: userSerivce, Logger: logger}
+	app := handler.App{Service: serivce, Logger: logger}
 
 	router := chi.NewRouter()
 	router.Use(loggingmiddleware.LoggingMiddleware(logger))

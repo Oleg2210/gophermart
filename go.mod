@@ -8,6 +8,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/mailru/easyjson v0.9.1
+	github.com/shopspring/decimal v1.4.0
 	go.uber.org/zap v1.27.1
 	golang.org/x/crypto v0.47.0
 )

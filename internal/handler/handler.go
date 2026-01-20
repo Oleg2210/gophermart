@@ -6,15 +6,16 @@ import (
 	"net/http"
 
 	"github.com/Oleg2210/gophermart/internal/config"
-	"github.com/Oleg2210/gophermart/internal/domain/user"
+	domainerrors "github.com/Oleg2210/gophermart/internal/domain/domain_errors"
+	"github.com/Oleg2210/gophermart/internal/domain/services"
 	"github.com/Oleg2210/gophermart/internal/serializers"
 	"github.com/Oleg2210/gophermart/internal/tools"
 	"go.uber.org/zap"
 )
 
 type App struct {
-	UserService *user.AuthService
-	Logger      *zap.Logger
+	Service *services.Service
+	Logger  *zap.Logger
 }
 
 func parseRequest(a *App, w http.ResponseWriter, r *http.Request) (string, string, error) {
@@ -58,10 +59,10 @@ func (a *App) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, err := a.UserService.Register(r.Context(), login, password)
+	u, err := a.Service.RegisterUser(r.Context(), login, password)
 
 	if err != nil {
-		if errors.Is(err, user.ErrLoginAlreadyExists) {
+		if errors.Is(err, domainerrors.ErrLoginAlreadyExists) {
 			http.Error(w, "invalid json", http.StatusConflict)
 			return
 		}
@@ -80,10 +81,10 @@ func (a *App) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, err := a.UserService.Login(r.Context(), login, password)
+	u, err := a.Service.Login(r.Context(), login, password)
 
 	if err != nil {
-		if errors.Is(err, user.ErrLoginDoesNotExist) || errors.Is(err, user.ErrLoginWrongPassword) {
+		if errors.Is(err, domainerrors.ErrLoginDoesNotExist) || errors.Is(err, domainerrors.ErrLoginWrongPassword) {
 			http.Error(w, "wrong login or password", http.StatusConflict)
 			return
 		}

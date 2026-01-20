@@ -34,6 +34,8 @@ func (r *MemoryUserRepository) Create(ctx context.Context, login string, hashedP
 		Withdraw:       decimal.NewFromInt(0),
 	}
 
+	r.tx.users[userId] = user
+
 	return user, nil
 }
 

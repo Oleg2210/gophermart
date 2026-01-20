@@ -85,7 +85,7 @@ func (a *App) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrLoginDoesNotExist) || errors.Is(err, domainerrors.ErrLoginWrongPassword) {
-			http.Error(w, "wrong login or password", http.StatusConflict)
+			http.Error(w, "wrong login or password", http.StatusUnauthorized)
 			return
 		}
 

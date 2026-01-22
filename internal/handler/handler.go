@@ -8,6 +8,7 @@ import (
 	"github.com/Oleg2210/gophermart/internal/config"
 	domainerrors "github.com/Oleg2210/gophermart/internal/domain/domain_errors"
 	"github.com/Oleg2210/gophermart/internal/domain/services"
+	authmiddleware "github.com/Oleg2210/gophermart/internal/middleware/auth_middleware"
 	"github.com/Oleg2210/gophermart/internal/serializers"
 	"github.com/Oleg2210/gophermart/internal/tools"
 	"go.uber.org/zap"
@@ -98,5 +99,44 @@ func (a *App) HandleLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) HandleRegisterOrder(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
 
+	if err != nil {
+		a.Logger.Error("failed to read request body", zap.Error(err))
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	ctx := r.Context()
+	userID, ok := authmiddleware.GetUserIDFromContext(ctx)
+
+	if !ok {
+		a.Logger.Error("failed to get userID")
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	err = a.Service.RegisterOrder(ctx, userID, string(body))
+
+	if err != nil {
+		if errors.Is(err, domainerrors.ErrOrderIDWrongFormat) {
+			http.Error(w, http.StatusText(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
+			return
+		}
+
+		if errors.Is(err, domainerrors.ErrOrderIDBelongsOther) {
+			http.Error(w, "order registred by another user", http.StatusConflict)
+			return
+		}
+
+		if errors.Is(err, domainerrors.ErrOrderIDExists) {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		a.Logger.Error("failed to register order", zap.Error(err))
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	}
+
+	w.WriteHeader(http.StatusAccepted)
 }

@@ -3,10 +3,19 @@ package services
 import (
 	"context"
 	"fmt"
+	"time"
 
 	domainerrors "github.com/Oleg2210/gophermart/internal/domain/domain_errors"
 	domainrepository "github.com/Oleg2210/gophermart/internal/domain/domain_repository"
 	"github.com/Oleg2210/gophermart/internal/domain/entities"
+	"github.com/shopspring/decimal"
+)
+
+const (
+	OrderNewStatus        = "NEW"
+	OrderProcessingStatus = "PROCESSING"
+	OrderProcessedStatus  = "PROCESSED"
+	OrderInvalidStatus    = "INVALID"
 )
 
 type Hasher interface {
@@ -78,4 +87,59 @@ func (service *Service) Login(ctx context.Context, login string, password string
 	}
 
 	return user, nil
+}
+
+func (service *Service) isValidOrderID(orderID string) bool {
+	s := string(orderID)
+
+	if s == "" {
+		return false
+	}
+
+	sum := 0
+	alt := false
+
+	for i := len(s) - 1; i >= 0; i-- {
+		c := s[i]
+
+		if c < '0' || c > '9' {
+			return false
+		}
+
+		n := int(c - '0')
+
+		if alt {
+			n *= 2
+			if n > 9 {
+				n -= 9
+			}
+		}
+
+		sum += n
+		alt = !alt
+	}
+
+	return sum%10 == 0
+}
+
+func (service *Service) RegisterOrder(ctx context.Context, userID, orderID string) error {
+	if !service.isValidOrderID(orderID) {
+		return domainerrors.ErrOrderIDWrongFormat
+	}
+
+	order := entities.Order{
+		ID:      orderID,
+		UserID:  userID,
+		Status:  OrderInvalidStatus,
+		Created: time.Now(),
+		Amount:  decimal.NewFromInt(0),
+	}
+
+	err := service.txManager.WithTx(ctx, func(tx domainrepository.Tx) error {
+		orderRepo := tx.Order()
+		err := orderRepo.Create(ctx, order)
+
+		return err
+	})
+	return err
 }

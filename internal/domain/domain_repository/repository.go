@@ -26,7 +26,7 @@ type UserRepository interface {
 }
 
 type OrderRepository interface {
-	Create(ctx context.Context, userID string, orderID string, amount decimal.Decimal) error
+	Create(ctx context.Context, order entities.Order) error
 	ChangeStatus(ctx context.Context, orderID string, status string) error
 	GetByUserID(ctx context.Context, userID string) ([]entities.Order, error)
 }

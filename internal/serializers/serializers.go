@@ -30,3 +30,13 @@ type WithdrawRequest struct {
 	Order string          `json:"order"`
 	Sum   decimal.Decimal `json:"sum"`
 }
+
+//easyjson:json
+type WithdrawResponseItem struct {
+	Order       string          `json:"order"`
+	Sum         decimal.Decimal `json:"sum"`
+	ProcessedAt string          `json:"processed_at"`
+}
+
+//easyjson:json
+type WithdrawsResponseSlice []WithdrawResponseItem

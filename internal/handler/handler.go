@@ -284,3 +284,50 @@ func (a *App) HandleMakeWithdraw(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 }
+
+func (a *App) HandleListWithdraws(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID, ok := authmiddleware.GetUserIDFromContext(ctx)
+
+	if !ok {
+		a.Logger.Error("failed to get userID")
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	withdraws, err := a.Service.GetWithdraws(ctx, userID)
+
+	if err != nil {
+		a.Logger.Error("error while getting withdrawls", zap.Error(err))
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	if len(withdraws) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	var respItems serializers.WithdrawsResponseSlice
+
+	for _, w := range withdraws {
+		item := serializers.WithdrawResponseItem{
+			Order:       w.ID,
+			Sum:         w.Amount,
+			ProcessedAt: w.Created.Format(time.RFC3339),
+		}
+
+		respItems = append(respItems, item)
+	}
+
+	jsonBytes, err := respItems.MarshalJSON()
+	if err != nil {
+		a.Logger.Error("error in withdrawls list response serializing", zap.Error(err))
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(jsonBytes)
+}

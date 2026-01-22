@@ -194,3 +194,16 @@ func (service *Service) MakeWithdraw(ctx context.Context, userID string, orderID
 
 	return err
 }
+
+func (service *Service) GetWithdraws(ctx context.Context, userID string) ([]entities.Withdraw, error) {
+	var withdraws []entities.Withdraw
+
+	err := service.txManager.WithTx(ctx, func(tx domainrepository.Tx) error {
+		withdrawRepo := tx.Withdraw()
+		w, err := withdrawRepo.GetByUserID(ctx, userID)
+		withdraws = w
+		return err
+	})
+
+	return withdraws, err
+}

@@ -24,3 +24,9 @@ type BalanceResponse struct {
 	Current   *decimal.Decimal `json:"current"`
 	Withdrawn *decimal.Decimal `json:"withdrawn"`
 }
+
+//easyjson:json
+type WithdrawRequest struct {
+	Order string          `json:"order"`
+	Sum   decimal.Decimal `json:"sum"`
+}

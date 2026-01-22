@@ -3,13 +3,25 @@ package memory
 import (
 	"context"
 
+	domainerrors "github.com/Oleg2210/gophermart/internal/domain/domain_errors"
 	"github.com/Oleg2210/gophermart/internal/domain/entities"
-	"github.com/shopspring/decimal"
 )
 
 type MemoryWithdrawRepository struct{ tx *MemTx }
 
-func (r *MemoryWithdrawRepository) Create(ctx context.Context, userID string, withdrawID string, amount decimal.Decimal) error {
+func (r *MemoryWithdrawRepository) Create(ctx context.Context, withdraw entities.Withdraw) error {
+	select {
+	case <-ctx.Done():
+		ctx.Err()
+	default:
+	}
+
+	_, ok := r.tx.withdraws[withdraw.ID]
+	if ok {
+		return domainerrors.ErrWithdrawAlreadyExists
+	}
+
+	r.tx.withdraws[withdraw.ID] = withdraw
 	return nil
 }
 

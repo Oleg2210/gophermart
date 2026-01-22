@@ -49,6 +49,7 @@ func StartApp() {
 		r.Post("/api/user/orders", app.HandleRegisterOrder)
 		r.Get("/api/user/orders", app.HandleListOrders)
 		r.Get("/api/user/balance", app.HandleListOrders)
+		r.Post("/api/user/balance/withdraw", app.HandleMakeWithdraw)
 	})
 
 	server := &http.Server{

@@ -70,10 +70,19 @@ func (r *MemoryUserRepository) GetByID(ctx context.Context, userID string) (enti
 	return user, nil
 }
 
-func (r *MemoryUserRepository) AddBalance(ctx context.Context, userID string, amount decimal.Decimal) error {
-	return nil
-}
+func (r *MemoryUserRepository) Update(ctx context.Context, user entities.User) error {
+	select {
+	case <-ctx.Done():
+		ctx.Err()
+	default:
+	}
 
-func (r *MemoryUserRepository) MakeWithdraw(ctx context.Context, userID string, amount decimal.Decimal) error {
+	user, ok := r.tx.users[user.ID]
+
+	if !ok {
+		return domainerrors.ErrUserDoesNotExist
+	}
+
+	r.tx.users[user.ID] = user
 	return nil
 }

@@ -234,3 +234,53 @@ func (a *App) HandleGetBalance(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write(jsonBytes)
 }
+
+func (a *App) HandleMakeWithdraw(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
+
+	if err != nil {
+		a.Logger.Error("failed to read request body", zap.Error(err))
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	var req serializers.WithdrawRequest
+
+	if err := req.UnmarshalJSON(body); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+
+	if req.Sum.LessThanOrEqual(decimal.NewFromInt(0)) {
+		http.Error(w, "wrong sum", http.StatusBadRequest)
+		return
+	}
+
+	ctx := r.Context()
+	userID, ok := authmiddleware.GetUserIDFromContext(ctx)
+
+	if !ok {
+		a.Logger.Error("failed to get userID")
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	err = a.Service.MakeWithdraw(ctx, userID, req.Order, req.Sum)
+
+	if err != nil {
+		if errors.Is(err, domainerrors.ErrOrderIDWrongFormat) || errors.Is(err, domainerrors.ErrWithdrawAlreadyExists) {
+			http.Error(w, "wrong order id", http.StatusUnprocessableEntity)
+			return
+		}
+
+		if errors.Is(err, domainerrors.ErrWithdrawNotEnoughBalance) {
+			http.Error(w, "wrong order id", http.StatusPaymentRequired)
+			return
+		}
+
+		a.Logger.Error("error while making withdraw", zap.Error(err))
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}

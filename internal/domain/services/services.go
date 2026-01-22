@@ -156,3 +156,41 @@ func (service *Service) GetOrders(ctx context.Context, userID string) ([]entitie
 
 	return orders, err
 }
+
+func (service *Service) MakeWithdraw(ctx context.Context, userID string, orderID string, amount decimal.Decimal) error {
+	if !service.isValidOrderID(orderID) {
+		return domainerrors.ErrOrderIDWrongFormat
+	}
+
+	err := service.txManager.WithTx(ctx, func(tx domainrepository.Tx) error {
+		userRepo := tx.User()
+		u, err := userRepo.GetByID(ctx, userID)
+		if err != nil {
+			return err
+		}
+
+		if u.Balance.LessThan(amount) {
+			return domainerrors.ErrWithdrawNotEnoughBalance
+		}
+
+		withdraw := entities.Withdraw{
+			ID:      orderID,
+			UserID:  userID,
+			Created: time.Now(),
+			Amount:  amount,
+		}
+
+		withdrawRepo := tx.Withdraw()
+		err = withdrawRepo.Create(ctx, withdraw)
+
+		if err != nil {
+			return err
+		}
+
+		u.Balance = u.Balance.Sub(amount)
+		u.Withdraw = u.Withdraw.Add(amount)
+		return userRepo.Update(ctx, u)
+	})
+
+	return err
+}

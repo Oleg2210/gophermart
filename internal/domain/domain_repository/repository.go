@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/Oleg2210/gophermart/internal/domain/entities"
-	"github.com/shopspring/decimal"
 )
 
 type TxManager interface {
@@ -21,8 +20,7 @@ type UserRepository interface {
 	Create(ctx context.Context, login string, hashedPassowrd string) (entities.User, error)
 	GetByLogin(ctx context.Context, login string) (entities.User, error)
 	GetByID(ctx context.Context, userID string) (entities.User, error)
-	AddBalance(ctx context.Context, userID string, amount decimal.Decimal) error
-	MakeWithdraw(ctx context.Context, userID string, amount decimal.Decimal) error
+	Update(ctx context.Context, user entities.User) error
 }
 
 type OrderRepository interface {
@@ -32,6 +30,6 @@ type OrderRepository interface {
 }
 
 type WithdrawRepository interface {
-	Create(ctx context.Context, userID string, withdrawID string, amount decimal.Decimal) error
+	Create(ctx context.Context, withdraw entities.Withdraw) error
 	GetByUserID(ctx context.Context, userID string) ([]entities.Withdraw, error)
 }

@@ -2,6 +2,7 @@ package memory
 
 import (
 	"context"
+	"sort"
 
 	domainerrors "github.com/Oleg2210/gophermart/internal/domain/domain_errors"
 	"github.com/Oleg2210/gophermart/internal/domain/entities"
@@ -34,5 +35,23 @@ func (r *MemoryOrderRepository) ChangeStatus(ctx context.Context, orderID string
 }
 
 func (r *MemoryOrderRepository) GetByUserID(ctx context.Context, userID string) ([]entities.Order, error) {
-	return []entities.Order{}, nil
+	select {
+	case <-ctx.Done():
+		return []entities.Order{}, ctx.Err()
+	default:
+	}
+
+	orders := make([]entities.Order, 0)
+
+	for _, order := range r.tx.orders {
+		if order.UserID == userID {
+			orders = append(orders, order)
+		}
+	}
+
+	sort.Slice(orders, func(i, j int) bool {
+		return orders[i].Created.After(orders[j].Created)
+	})
+
+	return orders, nil
 }

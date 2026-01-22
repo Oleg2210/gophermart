@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/Oleg2210/gophermart/internal/config"
 	domainerrors "github.com/Oleg2210/gophermart/internal/domain/domain_errors"
@@ -11,6 +12,7 @@ import (
 	authmiddleware "github.com/Oleg2210/gophermart/internal/middleware/auth_middleware"
 	"github.com/Oleg2210/gophermart/internal/serializers"
 	"github.com/Oleg2210/gophermart/internal/tools"
+	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
 )
 
@@ -136,7 +138,63 @@ func (a *App) HandleRegisterOrder(w http.ResponseWriter, r *http.Request) {
 
 		a.Logger.Error("failed to register order", zap.Error(err))
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
 	}
 
 	w.WriteHeader(http.StatusAccepted)
+}
+
+func (a *App) HandleListOrders(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID, ok := authmiddleware.GetUserIDFromContext(ctx)
+
+	if !ok {
+		a.Logger.Error("failed to get userID")
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	orders, err := a.Service.GetOrders(ctx, userID)
+
+	if err != nil {
+		a.Logger.Error("failed to get orders", zap.Error(err))
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	if len(orders) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	var respItems serializers.OrdersResponseSlice
+
+	for _, o := range orders {
+		var accrual *decimal.Decimal
+
+		if !o.Amount.IsZero() {
+			v := o.Amount
+			accrual = &v
+		}
+
+		item := serializers.OrdersResponseItem{
+			Number:     o.ID,
+			Status:     o.Status,
+			UploadedAt: o.Created.Format(time.RFC3339),
+			Accrual:    accrual,
+		}
+
+		respItems = append(respItems, item)
+	}
+
+	jsonBytes, err := respItems.MarshalJSON()
+	if err != nil {
+		a.Logger.Error("error in resonse serializing", zap.Error(err))
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(jsonBytes)
 }

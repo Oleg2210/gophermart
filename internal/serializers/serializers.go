@@ -1,7 +1,20 @@
 package serializers
 
+import "github.com/shopspring/decimal"
+
 //easyjson:json
 type AuthRequest struct {
 	Login    string `json:"login"`
 	Password string `json:"password"`
 }
+
+//easyjson:json
+type OrdersResponseItem struct {
+	Number     string           `json:"number"`
+	Status     string           `json:"status"`
+	UploadedAt string           `json:"uploaded_at"`
+	Accrual    *decimal.Decimal `json:"accrual,omitempty"`
+}
+
+//easyjson:json
+type OrdersResponseSlice []OrdersResponseItem

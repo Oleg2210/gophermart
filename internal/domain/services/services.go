@@ -143,3 +143,17 @@ func (service *Service) RegisterOrder(ctx context.Context, userID, orderID strin
 	})
 	return err
 }
+
+func (service *Service) GetOrders(ctx context.Context, userID string) ([]entities.Order, error) {
+	var orders []entities.Order
+
+	err := service.txManager.WithTx(ctx, func(tx domainrepository.Tx) error {
+		orderRepo := tx.Order()
+		o, err := orderRepo.GetByUserID(ctx, userID)
+
+		orders = o
+		return err
+	})
+
+	return orders, err
+}

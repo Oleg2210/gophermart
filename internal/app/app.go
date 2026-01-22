@@ -15,6 +15,7 @@ import (
 	"github.com/Oleg2210/gophermart/internal/repository/memory"
 	"github.com/Oleg2210/gophermart/internal/tools"
 	"github.com/go-chi/chi/v5"
+	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
 )
 
@@ -23,6 +24,7 @@ func chooseTransactionManager() domainrepository.TxManager {
 }
 
 func StartApp() {
+	decimal.MarshalJSONWithoutQuotes = true
 	config.Load()
 
 	logger, err := zap.NewProduction()
@@ -45,6 +47,7 @@ func StartApp() {
 	router.Group(func(r chi.Router) {
 		r.Use(authmiddleware.AuthMiddleware([]byte(config.AuthSecret)))
 		r.Post("/api/user/orders", app.HandleRegisterOrder)
+		r.Get("/api/user/orders", app.HandleListOrders)
 	})
 
 	server := &http.Server{

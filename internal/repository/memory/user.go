@@ -55,8 +55,19 @@ func (r *MemoryUserRepository) GetByLogin(ctx context.Context, login string) (en
 	return entities.User{}, domainerrors.ErrLoginDoesNotExist
 }
 
-func (r *MemoryUserRepository) GetByID(ctx context.Context, login string) (entities.User, error) {
-	return entities.User{}, nil
+func (r *MemoryUserRepository) GetByID(ctx context.Context, userID string) (entities.User, error) {
+	select {
+	case <-ctx.Done():
+		return entities.User{}, ctx.Err()
+	default:
+	}
+
+	user, ok := r.tx.users[userID]
+
+	if !ok {
+		return entities.User{}, domainerrors.ErrUserDoesNotExist
+	}
+	return user, nil
 }
 
 func (r *MemoryUserRepository) AddBalance(ctx context.Context, userID string, amount decimal.Decimal) error {

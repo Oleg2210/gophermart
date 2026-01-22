@@ -89,6 +89,19 @@ func (service *Service) Login(ctx context.Context, login string, password string
 	return user, nil
 }
 
+func (service *Service) GetUser(ctx context.Context, userID string) (entities.User, error) {
+	var user entities.User
+
+	err := service.txManager.WithTx(ctx, func(tx domainrepository.Tx) error {
+		userRepo := tx.User()
+		u, err := userRepo.GetByID(ctx, userID)
+		user = u
+		return err
+	})
+
+	return user, err
+}
+
 func (service *Service) isValidOrderID(orderID string) bool {
 	s := string(orderID)
 

@@ -189,7 +189,43 @@ func (a *App) HandleListOrders(w http.ResponseWriter, r *http.Request) {
 
 	jsonBytes, err := respItems.MarshalJSON()
 	if err != nil {
-		a.Logger.Error("error in resonse serializing", zap.Error(err))
+		a.Logger.Error("error in order list response serializing", zap.Error(err))
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(jsonBytes)
+}
+
+func (a *App) HandleGetBalance(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID, ok := authmiddleware.GetUserIDFromContext(ctx)
+
+	if !ok {
+		a.Logger.Error("failed to get userID")
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	user, err := a.Service.GetUser(ctx, userID)
+
+	if err != nil {
+		a.Logger.Error("failed to get user", zap.Error(err))
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	resp := serializers.BalanceResponse{
+		Current:   &user.Balance,
+		Withdrawn: &user.Withdraw,
+	}
+
+	jsonBytes, err := resp.MarshalJSON()
+
+	if err != nil {
+		a.Logger.Error("error in balance response serializing", zap.Error(err))
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}

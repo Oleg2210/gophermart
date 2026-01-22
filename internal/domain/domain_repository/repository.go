@@ -20,7 +20,7 @@ type Tx interface {
 type UserRepository interface {
 	Create(ctx context.Context, login string, hashedPassowrd string) (entities.User, error)
 	GetByLogin(ctx context.Context, login string) (entities.User, error)
-	GetByID(ctx context.Context, login string) (entities.User, error)
+	GetByID(ctx context.Context, userID string) (entities.User, error)
 	AddBalance(ctx context.Context, userID string, amount decimal.Decimal) error
 	MakeWithdraw(ctx context.Context, userID string, amount decimal.Decimal) error
 }

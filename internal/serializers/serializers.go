@@ -18,3 +18,9 @@ type OrdersResponseItem struct {
 
 //easyjson:json
 type OrdersResponseSlice []OrdersResponseItem
+
+//easyjson:json
+type BalanceResponse struct {
+	Current   *decimal.Decimal `json:"current"`
+	Withdrawn *decimal.Decimal `json:"withdrawn"`
+}

@@ -47,20 +47,11 @@ func (service *Service) RegisterUser(ctx context.Context, login string, passowrd
 	err = service.txManager.WithTx(ctx, func(tx domainrepository.Tx) error {
 		userRepo := tx.User()
 		u, err := userRepo.Create(ctx, login, hashedPassowrd)
-
-		if err == nil {
-			user = u
-			return nil
-		}
-
+		user = u
 		return err
 	})
 
-	if err != nil {
-		return entities.User{}, err
-	}
-
-	return user, nil
+	return user, err
 }
 
 func (service *Service) Login(ctx context.Context, login string, password string) (entities.User, error) {
@@ -69,12 +60,7 @@ func (service *Service) Login(ctx context.Context, login string, password string
 	err := service.txManager.WithTx(ctx, func(tx domainrepository.Tx) error {
 		userRepo := tx.User()
 		u, err := userRepo.GetByLogin(ctx, login)
-
-		if err == nil {
-			user = u
-			return nil
-		}
-
+		user = u
 		return err
 	})
 

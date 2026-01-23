@@ -137,7 +137,7 @@ func (service *Service) RegisterOrder(ctx context.Context, userID, orderID strin
 	order := entities.Order{
 		ID:      orderID,
 		UserID:  userID,
-		Status:  OrderInvalidStatus,
+		Status:  OrderNewStatus,
 		Created: time.Now(),
 		Amount:  decimal.NewFromInt(0),
 	}

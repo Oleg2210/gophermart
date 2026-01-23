@@ -108,6 +108,10 @@ func (r *PgxOrderRepository) GetByUserID(ctx context.Context, userID string) ([]
 		orders = append(orders, o)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
 	return orders, nil
 }
 
@@ -144,6 +148,10 @@ func (r *PgxOrderRepository) GetOrders(ctx context.Context, limit int, statuses 
 			return nil, err
 		}
 		orders = append(orders, o)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return orders, nil

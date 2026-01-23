@@ -23,6 +23,7 @@ import (
 )
 
 func chooseTransactionManager() domainrepository.TxManager {
+	return memory.NewMemTxManager()
 	if config.DatabaseInfo != "" {
 		manager, err := db.NewPgxTxManager(config.DatabaseInfo)
 

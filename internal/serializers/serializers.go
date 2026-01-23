@@ -40,3 +40,10 @@ type WithdrawResponseItem struct {
 
 //easyjson:json
 type WithdrawsResponseSlice []WithdrawResponseItem
+
+//easyjson:json
+type AccrualResponse struct {
+	Order   string           `json:"order"`
+	Status  string           `json:"status"`
+	Accrual *decimal.Decimal `json:"accrual,omitempty"`
+}

@@ -12,10 +12,11 @@ import (
 )
 
 const (
-	OrderNewStatus        = "NEW"
-	OrderProcessingStatus = "PROCESSING"
-	OrderProcessedStatus  = "PROCESSED"
-	OrderInvalidStatus    = "INVALID"
+	OrderNewStatus         = "NEW"
+	OrderProcessingStatus  = "PROCESSING"
+	OrderProcessedStatus   = "PROCESSED"
+	OrderInvalidStatus     = "INVALID"
+	UnprocessedOrdersCount = 20
 )
 
 type Hasher interface {
@@ -155,6 +156,55 @@ func (service *Service) GetOrders(ctx context.Context, userID string) ([]entitie
 	})
 
 	return orders, err
+}
+
+func (Service *Service) GetUnprocessedOrders(ctx context.Context) ([]entities.Order, error) {
+	var orders []entities.Order
+
+	err := Service.txManager.WithTx(ctx, func(tx domainrepository.Tx) error {
+		orderRepo := tx.Order()
+		o, err := orderRepo.GetOrders(ctx, UnprocessedOrdersCount, []string{OrderNewStatus, OrderProcessingStatus})
+		orders = o
+		return err
+	})
+
+	return orders, err
+}
+
+func (service *Service) ProcessAccural(ctx context.Context, orderID, status string, amount decimal.Decimal) error {
+	err := service.txManager.WithTx(ctx, func(tx domainrepository.Tx) error {
+		orderRepo := tx.Order()
+
+		o, err := orderRepo.GetByID(ctx, orderID)
+		if err != nil {
+			return err
+		}
+
+		o.Status = status
+		o.Amount = amount
+		err = orderRepo.ChangeOrder(ctx, o)
+		if err != nil {
+			return err
+		}
+
+		if status == OrderProcessedStatus {
+			userRepo := tx.User()
+
+			u, err := userRepo.GetByID(ctx, o.UserID)
+			if err != nil {
+				return err
+			}
+
+			u.Balance = u.Balance.Add(amount)
+
+			err = userRepo.Update(ctx, u)
+			return err
+		}
+
+		return nil
+	})
+
+	return err
 }
 
 func (service *Service) MakeWithdraw(ctx context.Context, userID string, orderID string, amount decimal.Decimal) error {

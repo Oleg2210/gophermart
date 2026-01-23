@@ -25,8 +25,10 @@ type UserRepository interface {
 
 type OrderRepository interface {
 	Create(ctx context.Context, order entities.Order) error
-	ChangeStatus(ctx context.Context, orderID string, status string) error
+	GetByID(ctx context.Context, orderID string) (entities.Order, error)
+	ChangeOrder(ctx context.Context, order entities.Order) error
 	GetByUserID(ctx context.Context, userID string) ([]entities.Order, error)
+	GetOrders(ctx context.Context, limitCount int, statuses []string) ([]entities.Order, error)
 }
 
 type WithdrawRepository interface {

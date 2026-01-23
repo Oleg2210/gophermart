@@ -613,3 +613,100 @@ func (v *AuthRequest) UnmarshalJSON(data []byte) error {
 func (v *AuthRequest) UnmarshalEasyJSON(l *jlexer.Lexer) {
 	easyjsonA970e379DecodeGithubComOleg2210GophermartInternalSerializers6(l, v)
 }
+func easyjsonA970e379DecodeGithubComOleg2210GophermartInternalSerializers7(in *jlexer.Lexer, out *AccrualResponse) {
+	isTopLevel := in.IsStart()
+	if in.IsNull() {
+		if isTopLevel {
+			in.Consumed()
+		}
+		in.Skip()
+		return
+	}
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		key := in.UnsafeFieldName(false)
+		in.WantColon()
+		switch key {
+		case "order":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.Order = string(in.String())
+			}
+		case "status":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.Status = string(in.String())
+			}
+		case "accrual":
+			if in.IsNull() {
+				in.Skip()
+				out.Accrual = nil
+			} else {
+				if out.Accrual == nil {
+					out.Accrual = new(decimal.Decimal)
+				}
+				if in.IsNull() {
+					in.Skip()
+				} else {
+					if data := in.Raw(); in.Ok() {
+						in.AddError((*out.Accrual).UnmarshalJSON(data))
+					}
+				}
+			}
+		default:
+			in.SkipRecursive()
+		}
+		in.WantComma()
+	}
+	in.Delim('}')
+	if isTopLevel {
+		in.Consumed()
+	}
+}
+func easyjsonA970e379EncodeGithubComOleg2210GophermartInternalSerializers7(out *jwriter.Writer, in AccrualResponse) {
+	out.RawByte('{')
+	first := true
+	_ = first
+	{
+		const prefix string = ",\"order\":"
+		out.RawString(prefix[1:])
+		out.String(string(in.Order))
+	}
+	{
+		const prefix string = ",\"status\":"
+		out.RawString(prefix)
+		out.String(string(in.Status))
+	}
+	if in.Accrual != nil {
+		const prefix string = ",\"accrual\":"
+		out.RawString(prefix)
+		out.Raw((*in.Accrual).MarshalJSON())
+	}
+	out.RawByte('}')
+}
+
+// MarshalJSON supports json.Marshaler interface
+func (v AccrualResponse) MarshalJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	easyjsonA970e379EncodeGithubComOleg2210GophermartInternalSerializers7(&w, v)
+	return w.Buffer.BuildBytes(), w.Error
+}
+
+// MarshalEasyJSON supports easyjson.Marshaler interface
+func (v AccrualResponse) MarshalEasyJSON(w *jwriter.Writer) {
+	easyjsonA970e379EncodeGithubComOleg2210GophermartInternalSerializers7(w, v)
+}
+
+// UnmarshalJSON supports json.Unmarshaler interface
+func (v *AccrualResponse) UnmarshalJSON(data []byte) error {
+	r := jlexer.Lexer{Data: data}
+	easyjsonA970e379DecodeGithubComOleg2210GophermartInternalSerializers7(&r, v)
+	return r.Error()
+}
+
+// UnmarshalEasyJSON supports easyjson.Unmarshaler interface
+func (v *AccrualResponse) UnmarshalEasyJSON(l *jlexer.Lexer) {
+	easyjsonA970e379DecodeGithubComOleg2210GophermartInternalSerializers7(l, v)
+}

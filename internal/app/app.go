@@ -1,11 +1,13 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
 	"time"
 
+	accuralapp "github.com/Oleg2210/gophermart/internal/accural_app"
 	"github.com/Oleg2210/gophermart/internal/config"
 	domainrepository "github.com/Oleg2210/gophermart/internal/domain/domain_repository"
 	"github.com/Oleg2210/gophermart/internal/domain/services"
@@ -52,6 +54,10 @@ func StartApp() {
 		r.Post("/api/user/balance/withdraw", app.HandleMakeWithdraw)
 		r.Post("/api/user/withdrawals", app.HandleMakeWithdraw)
 	})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	accuralapp.StartAccural(ctx, config.AccuralAddress, *serivce, *logger)
 
 	server := &http.Server{
 		Addr:         config.RunAddress,

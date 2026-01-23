@@ -164,7 +164,7 @@ func (service *Service) GetUnprocessedOrders(ctx context.Context) ([]entities.Or
 
 	err := service.txManager.WithTx(ctx, func(tx domainrepository.Tx) error {
 		orderRepo := tx.Order()
-		o, err := orderRepo.GetOrders(ctx, UnprocessedOrdersCount, []string{OrderNewStatus, OrderRegistredStatus, OrderProcessingStatus})
+		o, err := orderRepo.GetOrders(ctx, UnprocessedOrdersCount, []string{OrderNewStatus, OrderProcessingStatus})
 		orders = o
 		return err
 	})
@@ -179,6 +179,10 @@ func (service *Service) ProcessAccural(ctx context.Context, orderID, status stri
 		o, err := orderRepo.GetByID(ctx, orderID)
 		if err != nil {
 			return err
+		}
+
+		if status == OrderRegistredStatus {
+			status = OrderNewStatus
 		}
 
 		o.Status = status

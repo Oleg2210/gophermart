@@ -3,11 +3,13 @@ package db
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 
 	domainerrors "github.com/Oleg2210/gophermart/internal/domain/domain_errors"
 	"github.com/Oleg2210/gophermart/internal/domain/entities"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type PgxOrderRepository struct {
@@ -21,13 +23,14 @@ func (r *PgxOrderRepository) Create(ctx context.Context, order entities.Order) e
     `
 	_, err := r.tx.tx.ExecContext(ctx, query, order.ID, order.UserID, order.Status, order.Amount, order.Created)
 	if err != nil {
-		if strings.Contains(err.Error(), "duplicate key") {
-			var userID string
-			err2 := r.tx.tx.QueryRowContext(ctx, "SELECT user_id FROM orders WHERE id=$1", order.ID).Scan(&userID)
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			var existingUserID string
+			err2 := r.tx.tx.QueryRowContext(ctx, "SELECT user_id FROM orders WHERE id=$1", order.ID).Scan(&existingUserID)
 			if err2 != nil {
 				return domainerrors.ErrOrderIDExists
 			}
-			if userID == order.UserID {
+			if existingUserID == order.UserID {
 				return domainerrors.ErrOrderIDExists
 			}
 			return domainerrors.ErrOrderIDBelongsOther

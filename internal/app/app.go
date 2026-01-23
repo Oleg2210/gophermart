@@ -15,6 +15,7 @@ import (
 	authmiddleware "github.com/Oleg2210/gophermart/internal/middleware/auth_middleware"
 	loggingmiddleware "github.com/Oleg2210/gophermart/internal/middleware/logging_middleware"
 	"github.com/Oleg2210/gophermart/internal/repository/db"
+	"github.com/Oleg2210/gophermart/internal/repository/memory"
 	"github.com/Oleg2210/gophermart/internal/tools"
 	"github.com/go-chi/chi/v5"
 	"github.com/shopspring/decimal"
@@ -32,8 +33,7 @@ func chooseTransactionManager() domainrepository.TxManager {
 
 		return manager
 	}
-	return nil
-	//return memory.NewMemTxManager()
+	return memory.NewMemTxManager()
 }
 
 func StartApp() {

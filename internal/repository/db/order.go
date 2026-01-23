@@ -2,12 +2,13 @@ package db
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/Oleg2210/gophermart/internal/domain/entities"
 )
 
 type PgxOrderRepository struct {
-	tx *PgxTx
+	tx *sql.Tx
 }
 
 func (r *PgxOrderRepository) Create(ctx context.Context, order entities.Order) error {

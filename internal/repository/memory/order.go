@@ -92,20 +92,20 @@ func (r *MemoryOrderRepository) GetOrders(ctx context.Context, limitCount int, s
 	default:
 	}
 
-	orders := make([]entities.Order, limitCount)
+	orders := make([]entities.Order, 0, limitCount)
 
 	count := 0
 	for _, order := range r.tx.orders {
-		if count == limitCount {
-			break
-		}
-
 		for _, status := range statuses {
 			if order.Status == status {
 				orders = append(orders, order)
 				count++
 				break
 			}
+		}
+
+		if count == limitCount {
+			break
 		}
 	}
 

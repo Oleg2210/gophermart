@@ -110,6 +110,9 @@ func (c *Client) GetOrder(ctx context.Context, orderID string) (*serializers.Acc
 	case http.StatusNoContent:
 		return nil, nil
 
+	case http.StatusNotFound:
+		return nil, nil
+
 	case http.StatusTooManyRequests:
 		retryAfter := resp.Header.Get("Retry-After")
 		sec, err := strconv.Atoi(retryAfter)

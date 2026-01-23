@@ -158,10 +158,10 @@ func (service *Service) GetOrders(ctx context.Context, userID string) ([]entitie
 	return orders, err
 }
 
-func (Service *Service) GetUnprocessedOrders(ctx context.Context) ([]entities.Order, error) {
+func (service *Service) GetUnprocessedOrders(ctx context.Context) ([]entities.Order, error) {
 	var orders []entities.Order
 
-	err := Service.txManager.WithTx(ctx, func(tx domainrepository.Tx) error {
+	err := service.txManager.WithTx(ctx, func(tx domainrepository.Tx) error {
 		orderRepo := tx.Order()
 		o, err := orderRepo.GetOrders(ctx, UnprocessedOrdersCount, []string{OrderNewStatus, OrderProcessingStatus})
 		orders = o

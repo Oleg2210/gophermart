@@ -52,7 +52,7 @@ func StartApp() {
 		r.Get("/api/user/orders", app.HandleListOrders)
 		r.Get("/api/user/balance", app.HandleListOrders)
 		r.Post("/api/user/balance/withdraw", app.HandleMakeWithdraw)
-		r.Post("/api/user/withdrawals", app.HandleMakeWithdraw)
+		r.Post("/api/user/withdrawals", app.HandleListWithdraws)
 	})
 
 	ctx, cancel := context.WithCancel(context.Background())

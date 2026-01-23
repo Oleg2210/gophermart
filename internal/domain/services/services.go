@@ -13,6 +13,7 @@ import (
 
 const (
 	OrderNewStatus         = "NEW"
+	OrderRegistredStatus   = "REGISTERED"
 	OrderProcessingStatus  = "PROCESSING"
 	OrderProcessedStatus   = "PROCESSED"
 	OrderInvalidStatus     = "INVALID"
@@ -163,7 +164,7 @@ func (service *Service) GetUnprocessedOrders(ctx context.Context) ([]entities.Or
 
 	err := service.txManager.WithTx(ctx, func(tx domainrepository.Tx) error {
 		orderRepo := tx.Order()
-		o, err := orderRepo.GetOrders(ctx, UnprocessedOrdersCount, []string{OrderNewStatus, OrderProcessingStatus})
+		o, err := orderRepo.GetOrders(ctx, UnprocessedOrdersCount, []string{OrderNewStatus, OrderRegistredStatus, OrderProcessingStatus})
 		orders = o
 		return err
 	})

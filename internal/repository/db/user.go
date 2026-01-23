@@ -56,7 +56,7 @@ func (r *PgxUserRepository) GetByLogin(ctx context.Context, login string) (entit
 		return entities.User{}, err
 	}
 
-	return entities.User{}, nil
+	return user, nil
 }
 
 func (r *PgxUserRepository) GetByID(ctx context.Context, userID string) (entities.User, error) {

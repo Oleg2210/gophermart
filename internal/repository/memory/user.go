@@ -5,38 +5,26 @@ import (
 
 	domainerrors "github.com/Oleg2210/gophermart/internal/domain/domain_errors"
 	"github.com/Oleg2210/gophermart/internal/domain/entities"
-	"github.com/google/uuid"
-	"github.com/shopspring/decimal"
 )
 
 type MemoryUserRepository struct{ tx *MemTx }
 
-func (r *MemoryUserRepository) Create(ctx context.Context, login string, hashedPassword string) (entities.User, error) {
+func (r *MemoryUserRepository) Create(ctx context.Context, user entities.User) error {
 	select {
 	case <-ctx.Done():
-		return entities.User{}, ctx.Err()
+		return ctx.Err()
 	default:
 	}
 
 	for _, v := range r.tx.users {
-		if v.Login == login {
-			return entities.User{}, domainerrors.ErrLoginAlreadyExists
+		if v.Login == user.Login {
+			return domainerrors.ErrLoginAlreadyExists
 		}
 	}
 
-	userID := uuid.New().String()
+	r.tx.users[user.ID] = user
 
-	user := entities.User{
-		ID:             userID,
-		Login:          login,
-		HashedPassword: hashedPassword,
-		Balance:        decimal.NewFromInt(0),
-		Withdraw:       decimal.NewFromInt(0),
-	}
-
-	r.tx.users[userID] = user
-
-	return user, nil
+	return nil
 }
 
 func (r *MemoryUserRepository) GetByLogin(ctx context.Context, login string) (entities.User, error) {

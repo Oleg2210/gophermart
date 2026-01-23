@@ -14,6 +14,7 @@ import (
 	"github.com/Oleg2210/gophermart/internal/handler"
 	authmiddleware "github.com/Oleg2210/gophermart/internal/middleware/auth_middleware"
 	loggingmiddleware "github.com/Oleg2210/gophermart/internal/middleware/logging_middleware"
+	"github.com/Oleg2210/gophermart/internal/repository/db"
 	"github.com/Oleg2210/gophermart/internal/repository/memory"
 	"github.com/Oleg2210/gophermart/internal/tools"
 	"github.com/go-chi/chi/v5"
@@ -22,6 +23,17 @@ import (
 )
 
 func chooseTransactionManager() domainrepository.TxManager {
+	if config.DatabaseInfo != "" {
+		manager, err := db.NewPgxTxManager(config.DatabaseInfo)
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to create db manager: %v\n", err)
+			os.Exit(1)
+		}
+
+		return manager
+	}
+
 	return memory.NewMemTxManager()
 }
 

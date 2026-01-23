@@ -8,6 +8,7 @@ import (
 	domainerrors "github.com/Oleg2210/gophermart/internal/domain/domain_errors"
 	domainrepository "github.com/Oleg2210/gophermart/internal/domain/domain_repository"
 	"github.com/Oleg2210/gophermart/internal/domain/entities"
+	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
 
@@ -44,12 +45,17 @@ func (service *Service) RegisterUser(ctx context.Context, login string, passowrd
 		return entities.User{}, fmt.Errorf("failed to hash password: %w", err)
 	}
 
-	var user entities.User
+	user := entities.User{
+		ID:             uuid.New().String(),
+		Login:          login,
+		HashedPassword: hashedPassowrd,
+		Balance:        decimal.NewFromInt(0),
+		Withdraw:       decimal.NewFromInt(0),
+	}
 
 	err = service.txManager.WithTx(ctx, func(tx domainrepository.Tx) error {
 		userRepo := tx.User()
-		u, err := userRepo.Create(ctx, login, hashedPassowrd)
-		user = u
+		err := userRepo.Create(ctx, user)
 		return err
 	})
 

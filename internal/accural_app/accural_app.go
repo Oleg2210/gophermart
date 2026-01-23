@@ -17,7 +17,7 @@ import (
 
 const (
 	ClientTimeout     = 10
-	NoOrdersTimeSleep = 5
+	NoOrdersTimeSleep = 0
 )
 
 func StartAccural(ctx context.Context, baseURL string, service services.Service, logger zap.Logger) {

@@ -60,9 +60,67 @@ func (r *PgxUserRepository) GetByLogin(ctx context.Context, login string) (entit
 }
 
 func (r *PgxUserRepository) GetByID(ctx context.Context, userID string) (entities.User, error) {
-	return entities.User{}, nil
+	var user entities.User
+
+	row := r.tx.tx.QueryRowContext(ctx, `
+		SELECT id, login, hashed_password, balance, withdraw
+		FROM users
+		WHERE id = $1
+	`, userID)
+
+	err := row.Scan(
+		&user.ID,
+		&user.Login,
+		&user.HashedPassword,
+		&user.Balance,
+		&user.Withdraw,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return entities.User{}, domainerrors.ErrUserDoesNotExist
+		}
+		return entities.User{}, err
+	}
+
+	return user, nil
 }
 
 func (r *PgxUserRepository) Update(ctx context.Context, user entities.User) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
+	res, err := r.tx.tx.ExecContext(ctx, `
+		UPDATE users
+		SET
+			login = $1,
+			hashed_password = $2,
+			balance = $3,
+			withdraw = $4
+		WHERE id = $5
+	`,
+		user.Login,
+		user.HashedPassword,
+		user.Balance,
+		user.Withdraw,
+		user.ID,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rows == 0 {
+		return domainerrors.ErrUserDoesNotExist
+	}
+
 	return nil
 }

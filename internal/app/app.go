@@ -61,7 +61,7 @@ func StartApp() {
 		r.Use(authmiddleware.AuthMiddleware([]byte(config.AuthSecret)))
 		r.Post("/api/user/orders", app.HandleRegisterOrder)
 		r.Get("/api/user/orders", app.HandleListOrders)
-		r.Get("/api/user/balance", app.HandleListOrders)
+		r.Get("/api/user/balance", app.HandleGetBalance)
 		r.Post("/api/user/balance/withdraw", app.HandleMakeWithdraw)
 		r.Get("/api/user/withdrawals", app.HandleListWithdraws)
 	})

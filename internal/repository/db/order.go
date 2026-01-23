@@ -3,11 +3,13 @@ package db
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 
 	domainerrors "github.com/Oleg2210/gophermart/internal/domain/domain_errors"
 	"github.com/Oleg2210/gophermart/internal/domain/entities"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type PgxOrderRepository struct {
@@ -15,27 +17,28 @@ type PgxOrderRepository struct {
 }
 
 func (r *PgxOrderRepository) Create(ctx context.Context, order entities.Order) error {
-	var existingUserID string
-
 	query := `
         INSERT INTO orders(id, user_id, status, amount, created)
         VALUES ($1, $2, $3, $4, $5)
-        ON CONFLICT (id) DO UPDATE SET id = EXCLUDED.id
-        RETURNING user_id
     `
-
-	err := r.tx.tx.QueryRowContext(ctx, query,
-		order.ID, order.UserID, order.Status, order.Amount, order.Created,
-	).Scan(&existingUserID)
-
+	_, err := r.tx.tx.ExecContext(ctx, query, order.ID, order.UserID, order.Status, order.Amount, order.Created)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			var existingUserID string
+			err2 := r.tx.tx.QueryRowContext(ctx, "SELECT user_id FROM orders WHERE id=$1", order.ID).Scan(&existingUserID)
+			if err2 != nil {
+				return domainerrors.ErrOrderIDExists
+			}
+			if existingUserID == order.UserID {
+				return domainerrors.ErrOrderIDExists
+			}
+			return domainerrors.ErrOrderIDBelongsOther
+		}
 		return err
 	}
 
-	if existingUserID == order.UserID {
-		return domainerrors.ErrOrderIDExists
-	}
-	return domainerrors.ErrOrderIDBelongsOther
+	return nil
 }
 
 func (r *PgxOrderRepository) GetByID(ctx context.Context, orderID string) (entities.Order, error) {

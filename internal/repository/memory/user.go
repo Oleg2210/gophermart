@@ -65,7 +65,7 @@ func (r *MemoryUserRepository) Update(ctx context.Context, user entities.User) e
 	default:
 	}
 
-	user, ok := r.tx.users[user.ID]
+	_, ok := r.tx.users[user.ID]
 
 	if !ok {
 		return domainerrors.ErrUserDoesNotExist

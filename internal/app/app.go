@@ -83,6 +83,6 @@ func StartApp() {
 		IdleTimeout:  60 * time.Second,
 	}
 
-	errorr := server.ListenAndServe()
-	fmt.Println(errorr)
+	err = server.ListenAndServe()
+	logger.Error("server stoped with error: ", zap.Error(err))
 }

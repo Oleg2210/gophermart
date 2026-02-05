@@ -22,12 +22,12 @@ import (
 	"go.uber.org/zap"
 )
 
-func chooseTransactionManager(projectSettings config.ProjectSettings) domainrepository.TxManager {
+func chooseTransactionManager(projectSettings config.ProjectSettings, logger *zap.Logger) domainrepository.TxManager {
 	if projectSettings.DatabaseInfo != "" {
 		manager, err := db.NewPgxTxManager(projectSettings.DatabaseInfo)
 
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed to create db manager: %v\n", err)
+			logger.Error("failed to create db manager: ", zap.Error(err))
 			os.Exit(1)
 		}
 
@@ -47,11 +47,11 @@ func StartApp() {
 
 	projectSettings, err := config.Load()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to load settings: %v\n", err)
+		logger.Error("failed to load settings: ", zap.Error(err))
 		os.Exit(1)
 	}
 
-	txManager := chooseTransactionManager(projectSettings)
+	txManager := chooseTransactionManager(projectSettings, logger)
 	hasher := tools.NewBcryptHasher()
 	serivce := services.NewService(hasher, txManager)
 

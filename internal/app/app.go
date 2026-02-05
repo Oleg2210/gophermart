@@ -9,8 +9,7 @@ import (
 
 	accuralapp "github.com/Oleg2210/gophermart/internal/accural_app"
 	"github.com/Oleg2210/gophermart/internal/config"
-	domainrepository "github.com/Oleg2210/gophermart/internal/domain/domain_repository"
-	"github.com/Oleg2210/gophermart/internal/domain/services"
+	"github.com/Oleg2210/gophermart/internal/domain"
 	"github.com/Oleg2210/gophermart/internal/handler"
 	authmiddleware "github.com/Oleg2210/gophermart/internal/middleware/auth_middleware"
 	loggingmiddleware "github.com/Oleg2210/gophermart/internal/middleware/logging_middleware"
@@ -22,7 +21,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func chooseTransactionManager(projectSettings config.ProjectSettings, logger *zap.Logger) domainrepository.TxManager {
+func chooseTransactionManager(projectSettings config.ProjectSettings, logger *zap.Logger) domain.TxManager {
 	if projectSettings.DatabaseInfo != "" {
 		manager, err := db.NewPgxTxManager(projectSettings.DatabaseInfo)
 
@@ -53,7 +52,7 @@ func StartApp() {
 
 	txManager := chooseTransactionManager(projectSettings, logger)
 	hasher := tools.NewBcryptHasher()
-	serivce := services.NewService(hasher, txManager)
+	serivce := domain.NewService(hasher, txManager)
 
 	app := handler.App{Service: serivce, Logger: logger, ProjectSettings: projectSettings}
 

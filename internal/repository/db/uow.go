@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	domainrepository "github.com/Oleg2210/gophermart/internal/domain/domain_repository"
+	"github.com/Oleg2210/gophermart/internal/domain"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -57,7 +57,7 @@ func NewPgxTxManager(dsn string) (*PgxTxManager, error) {
 	return &PgxTxManager{db: db}, nil
 }
 
-func (m *PgxTxManager) WithTx(ctx context.Context, fn func(tx domainrepository.Tx) error) error {
+func (m *PgxTxManager) WithTx(ctx context.Context, fn func(tx domain.Tx) error) error {
 	return retry(ctx, retryCount, retryTime, func() error {
 		sqlTx, err := m.db.BeginTx(ctx, &sql.TxOptions{})
 		if err != nil {
@@ -80,9 +80,9 @@ type PgxTx struct {
 	tx *sql.Tx
 }
 
-func (tx *PgxTx) User() domainrepository.UserRepository         { return &PgxUserRepository{tx} }
-func (tx *PgxTx) Order() domainrepository.OrderRepository       { return &PgxOrderRepository{tx} }
-func (tx *PgxTx) Withdraw() domainrepository.WithdrawRepository { return &PgxWithdrawRepository{tx} }
+func (tx *PgxTx) User() domain.UserRepository         { return &PgxUserRepository{tx} }
+func (tx *PgxTx) Order() domain.OrderRepository       { return &PgxOrderRepository{tx} }
+func (tx *PgxTx) Withdraw() domain.WithdrawRepository { return &PgxWithdrawRepository{tx} }
 
 func retry(ctx context.Context, attempts int, delay time.Duration, fn func() error) error {
 	var err error

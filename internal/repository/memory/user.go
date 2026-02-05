@@ -3,13 +3,12 @@ package memory
 import (
 	"context"
 
-	domainerrors "github.com/Oleg2210/gophermart/internal/domain/domain_errors"
-	"github.com/Oleg2210/gophermart/internal/domain/entities"
+	"github.com/Oleg2210/gophermart/internal/domain"
 )
 
 type MemoryUserRepository struct{ tx *MemTx }
 
-func (r *MemoryUserRepository) Create(ctx context.Context, user entities.User) error {
+func (r *MemoryUserRepository) Create(ctx context.Context, user domain.User) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -18,7 +17,7 @@ func (r *MemoryUserRepository) Create(ctx context.Context, user entities.User) e
 
 	for _, v := range r.tx.users {
 		if v.Login == user.Login {
-			return domainerrors.ErrLoginAlreadyExists
+			return domain.ErrLoginAlreadyExists
 		}
 	}
 
@@ -27,10 +26,10 @@ func (r *MemoryUserRepository) Create(ctx context.Context, user entities.User) e
 	return nil
 }
 
-func (r *MemoryUserRepository) GetByLogin(ctx context.Context, login string) (entities.User, error) {
+func (r *MemoryUserRepository) GetByLogin(ctx context.Context, login string) (domain.User, error) {
 	select {
 	case <-ctx.Done():
-		return entities.User{}, ctx.Err()
+		return domain.User{}, ctx.Err()
 	default:
 	}
 
@@ -40,25 +39,25 @@ func (r *MemoryUserRepository) GetByLogin(ctx context.Context, login string) (en
 		}
 	}
 
-	return entities.User{}, domainerrors.ErrLoginDoesNotExist
+	return domain.User{}, domain.ErrLoginDoesNotExist
 }
 
-func (r *MemoryUserRepository) GetByID(ctx context.Context, userID string) (entities.User, error) {
+func (r *MemoryUserRepository) GetByID(ctx context.Context, userID string) (domain.User, error) {
 	select {
 	case <-ctx.Done():
-		return entities.User{}, ctx.Err()
+		return domain.User{}, ctx.Err()
 	default:
 	}
 
 	user, ok := r.tx.users[userID]
 
 	if !ok {
-		return entities.User{}, domainerrors.ErrUserDoesNotExist
+		return domain.User{}, domain.ErrUserDoesNotExist
 	}
 	return user, nil
 }
 
-func (r *MemoryUserRepository) Update(ctx context.Context, user entities.User) error {
+func (r *MemoryUserRepository) Update(ctx context.Context, user domain.User) error {
 	select {
 	case <-ctx.Done():
 		ctx.Err()
@@ -68,7 +67,7 @@ func (r *MemoryUserRepository) Update(ctx context.Context, user entities.User) e
 	_, ok := r.tx.users[user.ID]
 
 	if !ok {
-		return domainerrors.ErrUserDoesNotExist
+		return domain.ErrUserDoesNotExist
 	}
 
 	r.tx.users[user.ID] = user

@@ -4,15 +4,14 @@ import (
 	"context"
 	"database/sql"
 
-	domainerrors "github.com/Oleg2210/gophermart/internal/domain/domain_errors"
-	"github.com/Oleg2210/gophermart/internal/domain/entities"
+	"github.com/Oleg2210/gophermart/internal/domain"
 )
 
 type PgxUserRepository struct {
 	tx *PgxTx
 }
 
-func (r *PgxUserRepository) Create(ctx context.Context, u entities.User) error {
+func (r *PgxUserRepository) Create(ctx context.Context, u domain.User) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -26,14 +25,14 @@ func (r *PgxUserRepository) Create(ctx context.Context, u entities.User) error {
 	return err
 }
 
-func (r *PgxUserRepository) GetByLogin(ctx context.Context, login string) (entities.User, error) {
+func (r *PgxUserRepository) GetByLogin(ctx context.Context, login string) (domain.User, error) {
 	select {
 	case <-ctx.Done():
-		return entities.User{}, ctx.Err()
+		return domain.User{}, ctx.Err()
 	default:
 	}
 
-	var user entities.User
+	var user domain.User
 
 	err := r.tx.tx.QueryRowContext(
 		ctx,
@@ -51,16 +50,16 @@ func (r *PgxUserRepository) GetByLogin(ctx context.Context, login string) (entit
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return entities.User{}, domainerrors.ErrLoginDoesNotExist
+			return domain.User{}, domain.ErrLoginDoesNotExist
 		}
-		return entities.User{}, err
+		return domain.User{}, err
 	}
 
 	return user, nil
 }
 
-func (r *PgxUserRepository) GetByID(ctx context.Context, userID string) (entities.User, error) {
-	var user entities.User
+func (r *PgxUserRepository) GetByID(ctx context.Context, userID string) (domain.User, error) {
+	var user domain.User
 
 	row := r.tx.tx.QueryRowContext(ctx, `
 		SELECT id, login, hashed_password, balance, withdraw
@@ -78,15 +77,15 @@ func (r *PgxUserRepository) GetByID(ctx context.Context, userID string) (entitie
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return entities.User{}, domainerrors.ErrUserDoesNotExist
+			return domain.User{}, domain.ErrUserDoesNotExist
 		}
-		return entities.User{}, err
+		return domain.User{}, err
 	}
 
 	return user, nil
 }
 
-func (r *PgxUserRepository) Update(ctx context.Context, user entities.User) error {
+func (r *PgxUserRepository) Update(ctx context.Context, user domain.User) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -119,7 +118,7 @@ func (r *PgxUserRepository) Update(ctx context.Context, user entities.User) erro
 	}
 
 	if rows == 0 {
-		return domainerrors.ErrUserDoesNotExist
+		return domain.ErrUserDoesNotExist
 	}
 
 	return nil

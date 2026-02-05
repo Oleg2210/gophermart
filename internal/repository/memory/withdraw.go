@@ -4,13 +4,12 @@ import (
 	"context"
 	"sort"
 
-	domainerrors "github.com/Oleg2210/gophermart/internal/domain/domain_errors"
-	"github.com/Oleg2210/gophermart/internal/domain/entities"
+	"github.com/Oleg2210/gophermart/internal/domain"
 )
 
 type MemoryWithdrawRepository struct{ tx *MemTx }
 
-func (r *MemoryWithdrawRepository) Create(ctx context.Context, withdraw entities.Withdraw) error {
+func (r *MemoryWithdrawRepository) Create(ctx context.Context, withdraw domain.Withdraw) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -19,21 +18,21 @@ func (r *MemoryWithdrawRepository) Create(ctx context.Context, withdraw entities
 
 	_, ok := r.tx.withdraws[withdraw.ID]
 	if ok {
-		return domainerrors.ErrWithdrawAlreadyExists
+		return domain.ErrWithdrawAlreadyExists
 	}
 
 	r.tx.withdraws[withdraw.ID] = withdraw
 	return nil
 }
 
-func (r *MemoryWithdrawRepository) GetByUserID(ctx context.Context, userID string) ([]entities.Withdraw, error) {
+func (r *MemoryWithdrawRepository) GetByUserID(ctx context.Context, userID string) ([]domain.Withdraw, error) {
 	select {
 	case <-ctx.Done():
-		return []entities.Withdraw{}, ctx.Err()
+		return []domain.Withdraw{}, ctx.Err()
 	default:
 	}
 
-	withdraws := make([]entities.Withdraw, 0)
+	withdraws := make([]domain.Withdraw, 0)
 
 	for _, v := range r.tx.withdraws {
 		if v.UserID == userID {

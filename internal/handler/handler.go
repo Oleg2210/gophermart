@@ -7,8 +7,7 @@ import (
 	"time"
 
 	"github.com/Oleg2210/gophermart/internal/config"
-	domainerrors "github.com/Oleg2210/gophermart/internal/domain/domain_errors"
-	"github.com/Oleg2210/gophermart/internal/domain/services"
+	"github.com/Oleg2210/gophermart/internal/domain"
 	authmiddleware "github.com/Oleg2210/gophermart/internal/middleware/auth_middleware"
 	"github.com/Oleg2210/gophermart/internal/serializers"
 	"github.com/Oleg2210/gophermart/internal/tools"
@@ -17,7 +16,7 @@ import (
 )
 
 type App struct {
-	Service         *services.Service
+	Service         *domain.Service
 	Logger          *zap.Logger
 	ProjectSettings config.ProjectSettings
 }
@@ -66,7 +65,7 @@ func (a *App) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	u, err := a.Service.RegisterUser(r.Context(), login, password)
 
 	if err != nil {
-		if errors.Is(err, domainerrors.ErrLoginAlreadyExists) {
+		if errors.Is(err, domain.ErrLoginAlreadyExists) {
 			http.Error(w, "invalid json", http.StatusConflict)
 			return
 		}
@@ -88,7 +87,7 @@ func (a *App) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	u, err := a.Service.Login(r.Context(), login, password)
 
 	if err != nil {
-		if errors.Is(err, domainerrors.ErrLoginDoesNotExist) || errors.Is(err, domainerrors.ErrLoginWrongPassword) {
+		if errors.Is(err, domain.ErrLoginDoesNotExist) || errors.Is(err, domain.ErrLoginWrongPassword) {
 			http.Error(w, "wrong login or password", http.StatusUnauthorized)
 			return
 		}
@@ -122,17 +121,17 @@ func (a *App) HandleRegisterOrder(w http.ResponseWriter, r *http.Request) {
 	err = a.Service.RegisterOrder(ctx, userID, string(body))
 
 	if err != nil {
-		if errors.Is(err, domainerrors.ErrOrderIDWrongFormat) {
+		if errors.Is(err, domain.ErrOrderIDWrongFormat) {
 			http.Error(w, http.StatusText(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
 			return
 		}
 
-		if errors.Is(err, domainerrors.ErrOrderIDBelongsOther) {
+		if errors.Is(err, domain.ErrOrderIDBelongsOther) {
 			http.Error(w, "order registred by another user", http.StatusConflict)
 			return
 		}
 
-		if errors.Is(err, domainerrors.ErrOrderIDExists) {
+		if errors.Is(err, domain.ErrOrderIDExists) {
 			w.WriteHeader(http.StatusOK)
 			return
 		}
@@ -270,12 +269,12 @@ func (a *App) HandleMakeWithdraw(w http.ResponseWriter, r *http.Request) {
 	err = a.Service.MakeWithdraw(ctx, userID, req.Order, req.Sum)
 
 	if err != nil {
-		if errors.Is(err, domainerrors.ErrOrderIDWrongFormat) || errors.Is(err, domainerrors.ErrWithdrawAlreadyExists) {
+		if errors.Is(err, domain.ErrOrderIDWrongFormat) || errors.Is(err, domain.ErrWithdrawAlreadyExists) {
 			http.Error(w, "wrong order id", http.StatusUnprocessableEntity)
 			return
 		}
 
-		if errors.Is(err, domainerrors.ErrWithdrawNotEnoughBalance) {
+		if errors.Is(err, domain.ErrWithdrawNotEnoughBalance) {
 			http.Error(w, "wrong order id", http.StatusPaymentRequired)
 			return
 		}

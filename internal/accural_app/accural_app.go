@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Oleg2210/gophermart/internal/domain/services"
+	"github.com/Oleg2210/gophermart/internal/domain"
 	"github.com/Oleg2210/gophermart/internal/serializers"
 	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
@@ -20,7 +20,7 @@ const (
 	NoOrdersTimeSleep = 0
 )
 
-func StartAccural(ctx context.Context, baseURL string, service services.Service, logger zap.Logger) {
+func StartAccural(ctx context.Context, baseURL string, service domain.Service, logger zap.Logger) {
 
 	go func() {
 		client := NewClient(baseURL)

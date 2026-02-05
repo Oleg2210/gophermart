@@ -4,15 +4,14 @@ import (
 	"context"
 	"sync"
 
-	domainrepository "github.com/Oleg2210/gophermart/internal/domain/domain_repository"
-	"github.com/Oleg2210/gophermart/internal/domain/entities"
+	"github.com/Oleg2210/gophermart/internal/domain"
 	"github.com/Oleg2210/gophermart/internal/tools"
 )
 
 type MemStorage struct {
-	Users     map[string]entities.User
-	Orders    map[string]entities.Order
-	Withdraws map[string]entities.Withdraw
+	Users     map[string]domain.User
+	Orders    map[string]domain.Order
+	Withdraws map[string]domain.Withdraw
 	mu        sync.Mutex
 }
 
@@ -23,14 +22,14 @@ type MemTxManager struct {
 func NewMemTxManager() *MemTxManager {
 	return &MemTxManager{
 		storage: &MemStorage{
-			Users:     make(map[string]entities.User),
-			Orders:    make(map[string]entities.Order),
-			Withdraws: make(map[string]entities.Withdraw),
+			Users:     make(map[string]domain.User),
+			Orders:    make(map[string]domain.Order),
+			Withdraws: make(map[string]domain.Withdraw),
 		},
 	}
 }
 
-func (m *MemTxManager) WithTx(ctx context.Context, fn func(tx domainrepository.Tx) error) error {
+func (m *MemTxManager) WithTx(ctx context.Context, fn func(tx domain.Tx) error) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -72,11 +71,11 @@ func (m *MemTxManager) WithTx(ctx context.Context, fn func(tx domainrepository.T
 }
 
 type MemTx struct {
-	users     map[string]entities.User
-	orders    map[string]entities.Order
-	withdraws map[string]entities.Withdraw
+	users     map[string]domain.User
+	orders    map[string]domain.Order
+	withdraws map[string]domain.Withdraw
 }
 
-func (tx *MemTx) User() domainrepository.UserRepository         { return &MemoryUserRepository{tx} }
-func (tx *MemTx) Order() domainrepository.OrderRepository       { return &MemoryOrderRepository{tx} }
-func (tx *MemTx) Withdraw() domainrepository.WithdrawRepository { return &MemoryWithdrawRepository{tx} }
+func (tx *MemTx) User() domain.UserRepository         { return &MemoryUserRepository{tx} }
+func (tx *MemTx) Order() domain.OrderRepository       { return &MemoryOrderRepository{tx} }
+func (tx *MemTx) Withdraw() domain.WithdrawRepository { return &MemoryWithdrawRepository{tx} }

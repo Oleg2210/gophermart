@@ -4,15 +4,14 @@ import (
 	"context"
 	"strings"
 
-	domainerrors "github.com/Oleg2210/gophermart/internal/domain/domain_errors"
-	"github.com/Oleg2210/gophermart/internal/domain/entities"
+	"github.com/Oleg2210/gophermart/internal/domain"
 )
 
 type PgxWithdrawRepository struct {
 	tx *PgxTx
 }
 
-func (r *PgxWithdrawRepository) Create(ctx context.Context, withdraw entities.Withdraw) error {
+func (r *PgxWithdrawRepository) Create(ctx context.Context, withdraw domain.Withdraw) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -31,7 +30,7 @@ func (r *PgxWithdrawRepository) Create(ctx context.Context, withdraw entities.Wi
 
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate key") || strings.Contains(err.Error(), "unique constraint") {
-			return domainerrors.ErrWithdrawAlreadyExists
+			return domain.ErrWithdrawAlreadyExists
 		}
 		return err
 	}
@@ -39,7 +38,7 @@ func (r *PgxWithdrawRepository) Create(ctx context.Context, withdraw entities.Wi
 	return nil
 }
 
-func (r *PgxWithdrawRepository) GetByUserID(ctx context.Context, userID string) ([]entities.Withdraw, error) {
+func (r *PgxWithdrawRepository) GetByUserID(ctx context.Context, userID string) ([]domain.Withdraw, error) {
 	rows, err := r.tx.tx.QueryContext(ctx, `
 		SELECT id, user_id, created, amount
 		FROM withdraws
@@ -51,9 +50,9 @@ func (r *PgxWithdrawRepository) GetByUserID(ctx context.Context, userID string) 
 	}
 	defer rows.Close()
 
-	var withdraws []entities.Withdraw
+	var withdraws []domain.Withdraw
 	for rows.Next() {
-		var w entities.Withdraw
+		var w domain.Withdraw
 		if err := rows.Scan(&w.ID, &w.UserID, &w.Created, &w.Amount); err != nil {
 			return nil, err
 		}

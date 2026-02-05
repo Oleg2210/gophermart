@@ -1,16 +1,25 @@
-package services
+package domain
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
-	domainerrors "github.com/Oleg2210/gophermart/internal/domain/domain_errors"
-	domainrepository "github.com/Oleg2210/gophermart/internal/domain/domain_repository"
-	"github.com/Oleg2210/gophermart/internal/domain/entities"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
+
+var ErrLoginAlreadyExists = errors.New("login already exists")
+var ErrLoginDoesNotExist = errors.New("login does not exist")
+var ErrLoginWrongPassword = errors.New("login wrong password")
+var ErrUserDoesNotExist = errors.New("user does not exist")
+var ErrOrderIDWrongFormat = errors.New("order id has a wrong format")
+var ErrOrderIDExists = errors.New("order id already registred")
+var ErrOrderIDBelongsOther = errors.New("order id registred by another user")
+var ErrOrderIDDoesNotExist = errors.New("order with such id does not exist")
+var ErrWithdrawAlreadyExists = errors.New("withdraw with suchnumber already exists")
+var ErrWithdrawNotEnoughBalance = errors.New("not enough balance for withdraw")
 
 const (
 	OrderNewStatus         = "NEW"
@@ -21,31 +30,84 @@ const (
 	UnprocessedOrdersCount = 20
 )
 
+type User struct {
+	ID             string
+	Login          string
+	HashedPassword string
+	Balance        decimal.Decimal
+	Withdraw       decimal.Decimal
+}
+
+type Order struct {
+	ID      string
+	UserID  string
+	Status  string
+	Created time.Time
+	Amount  decimal.Decimal
+}
+
+type Withdraw struct {
+	ID      string
+	UserID  string
+	Created time.Time
+	Amount  decimal.Decimal
+}
+
 type Hasher interface {
 	Hash(password string) (string, error)
 	Compare(hash, password string) bool
 }
 
-type Service struct {
-	hasher    Hasher
-	txManager domainrepository.TxManager
+type TxManager interface {
+	WithTx(ctx context.Context, fn func(tx Tx) error) error
 }
 
-func NewService(hasher Hasher, manager domainrepository.TxManager) *Service {
+type Tx interface {
+	User() UserRepository
+	Order() OrderRepository
+	Withdraw() WithdrawRepository
+}
+
+type UserRepository interface {
+	Create(ctx context.Context, user User) error
+	GetByLogin(ctx context.Context, login string) (User, error)
+	GetByID(ctx context.Context, userID string) (User, error)
+	Update(ctx context.Context, user User) error
+}
+
+type OrderRepository interface {
+	Create(ctx context.Context, order Order) error
+	GetByID(ctx context.Context, orderID string) (Order, error)
+	ChangeOrder(ctx context.Context, order Order) error
+	GetByUserID(ctx context.Context, userID string) ([]Order, error)
+	GetOrders(ctx context.Context, limitCount int, statuses []string) ([]Order, error)
+}
+
+type WithdrawRepository interface {
+	Create(ctx context.Context, withdraw Withdraw) error
+	GetByUserID(ctx context.Context, userID string) ([]Withdraw, error)
+}
+
+type Service struct {
+	hasher    Hasher
+	txManager TxManager
+}
+
+func NewService(hasher Hasher, manager TxManager) *Service {
 	return &Service{
 		hasher:    hasher,
 		txManager: manager,
 	}
 }
 
-func (service *Service) RegisterUser(ctx context.Context, login string, passowrd string) (entities.User, error) {
+func (service *Service) RegisterUser(ctx context.Context, login string, passowrd string) (User, error) {
 	hashedPassowrd, err := service.hasher.Hash(passowrd)
 
 	if err != nil {
-		return entities.User{}, fmt.Errorf("failed to hash password: %w", err)
+		return User{}, fmt.Errorf("failed to hash password: %w", err)
 	}
 
-	user := entities.User{
+	user := User{
 		ID:             uuid.New().String(),
 		Login:          login,
 		HashedPassword: hashedPassowrd,
@@ -53,7 +115,7 @@ func (service *Service) RegisterUser(ctx context.Context, login string, passowrd
 		Withdraw:       decimal.NewFromInt(0),
 	}
 
-	err = service.txManager.WithTx(ctx, func(tx domainrepository.Tx) error {
+	err = service.txManager.WithTx(ctx, func(tx Tx) error {
 		userRepo := tx.User()
 		err := userRepo.Create(ctx, user)
 		return err
@@ -62,10 +124,10 @@ func (service *Service) RegisterUser(ctx context.Context, login string, passowrd
 	return user, err
 }
 
-func (service *Service) Login(ctx context.Context, login string, password string) (entities.User, error) {
-	var user entities.User
+func (service *Service) Login(ctx context.Context, login string, password string) (User, error) {
+	var user User
 
-	err := service.txManager.WithTx(ctx, func(tx domainrepository.Tx) error {
+	err := service.txManager.WithTx(ctx, func(tx Tx) error {
 		userRepo := tx.User()
 		u, err := userRepo.GetByLogin(ctx, login)
 		user = u
@@ -73,20 +135,20 @@ func (service *Service) Login(ctx context.Context, login string, password string
 	})
 
 	if err != nil {
-		return entities.User{}, err
+		return User{}, err
 	}
 
 	if !service.hasher.Compare(user.HashedPassword, password) {
-		return entities.User{}, domainerrors.ErrLoginWrongPassword
+		return User{}, ErrLoginWrongPassword
 	}
 
 	return user, nil
 }
 
-func (service *Service) GetUser(ctx context.Context, userID string) (entities.User, error) {
-	var user entities.User
+func (service *Service) GetUser(ctx context.Context, userID string) (User, error) {
+	var user User
 
-	err := service.txManager.WithTx(ctx, func(tx domainrepository.Tx) error {
+	err := service.txManager.WithTx(ctx, func(tx Tx) error {
 		userRepo := tx.User()
 		u, err := userRepo.GetByID(ctx, userID)
 		user = u
@@ -131,10 +193,10 @@ func (service *Service) isValidOrderID(orderID string) bool {
 
 func (service *Service) RegisterOrder(ctx context.Context, userID, orderID string) error {
 	if !service.isValidOrderID(orderID) {
-		return domainerrors.ErrOrderIDWrongFormat
+		return ErrOrderIDWrongFormat
 	}
 
-	order := entities.Order{
+	order := Order{
 		ID:      orderID,
 		UserID:  userID,
 		Status:  OrderNewStatus,
@@ -142,7 +204,7 @@ func (service *Service) RegisterOrder(ctx context.Context, userID, orderID strin
 		Amount:  decimal.NewFromInt(0),
 	}
 
-	err := service.txManager.WithTx(ctx, func(tx domainrepository.Tx) error {
+	err := service.txManager.WithTx(ctx, func(tx Tx) error {
 		orderRepo := tx.Order()
 		err := orderRepo.Create(ctx, order)
 
@@ -151,10 +213,10 @@ func (service *Service) RegisterOrder(ctx context.Context, userID, orderID strin
 	return err
 }
 
-func (service *Service) GetOrders(ctx context.Context, userID string) ([]entities.Order, error) {
-	var orders []entities.Order
+func (service *Service) GetOrders(ctx context.Context, userID string) ([]Order, error) {
+	var orders []Order
 
-	err := service.txManager.WithTx(ctx, func(tx domainrepository.Tx) error {
+	err := service.txManager.WithTx(ctx, func(tx Tx) error {
 		orderRepo := tx.Order()
 		o, err := orderRepo.GetByUserID(ctx, userID)
 
@@ -165,10 +227,10 @@ func (service *Service) GetOrders(ctx context.Context, userID string) ([]entitie
 	return orders, err
 }
 
-func (service *Service) GetUnprocessedOrders(ctx context.Context) ([]entities.Order, error) {
-	var orders []entities.Order
+func (service *Service) GetUnprocessedOrders(ctx context.Context) ([]Order, error) {
+	var orders []Order
 
-	err := service.txManager.WithTx(ctx, func(tx domainrepository.Tx) error {
+	err := service.txManager.WithTx(ctx, func(tx Tx) error {
 		orderRepo := tx.Order()
 		o, err := orderRepo.GetOrders(ctx, UnprocessedOrdersCount, []string{OrderNewStatus, OrderProcessingStatus})
 		orders = o
@@ -179,7 +241,7 @@ func (service *Service) GetUnprocessedOrders(ctx context.Context) ([]entities.Or
 }
 
 func (service *Service) ProcessAccural(ctx context.Context, orderID, status string, amount decimal.Decimal) error {
-	err := service.txManager.WithTx(ctx, func(tx domainrepository.Tx) error {
+	err := service.txManager.WithTx(ctx, func(tx Tx) error {
 		orderRepo := tx.Order()
 
 		o, err := orderRepo.GetByID(ctx, orderID)
@@ -220,10 +282,10 @@ func (service *Service) ProcessAccural(ctx context.Context, orderID, status stri
 
 func (service *Service) MakeWithdraw(ctx context.Context, userID string, orderID string, amount decimal.Decimal) error {
 	if !service.isValidOrderID(orderID) {
-		return domainerrors.ErrOrderIDWrongFormat
+		return ErrOrderIDWrongFormat
 	}
 
-	err := service.txManager.WithTx(ctx, func(tx domainrepository.Tx) error {
+	err := service.txManager.WithTx(ctx, func(tx Tx) error {
 		userRepo := tx.User()
 		u, err := userRepo.GetByID(ctx, userID)
 		if err != nil {
@@ -231,10 +293,10 @@ func (service *Service) MakeWithdraw(ctx context.Context, userID string, orderID
 		}
 
 		if u.Balance.LessThan(amount) {
-			return domainerrors.ErrWithdrawNotEnoughBalance
+			return ErrWithdrawNotEnoughBalance
 		}
 
-		withdraw := entities.Withdraw{
+		withdraw := Withdraw{
 			ID:      orderID,
 			UserID:  userID,
 			Created: time.Now(),
@@ -256,10 +318,10 @@ func (service *Service) MakeWithdraw(ctx context.Context, userID string, orderID
 	return err
 }
 
-func (service *Service) GetWithdraws(ctx context.Context, userID string) ([]entities.Withdraw, error) {
-	var withdraws []entities.Withdraw
+func (service *Service) GetWithdraws(ctx context.Context, userID string) ([]Withdraw, error) {
+	var withdraws []Withdraw
 
-	err := service.txManager.WithTx(ctx, func(tx domainrepository.Tx) error {
+	err := service.txManager.WithTx(ctx, func(tx Tx) error {
 		withdrawRepo := tx.Withdraw()
 		w, err := withdrawRepo.GetByUserID(ctx, userID)
 		withdraws = w

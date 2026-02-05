@@ -6,15 +6,14 @@ import (
 	"fmt"
 	"strings"
 
-	domainerrors "github.com/Oleg2210/gophermart/internal/domain/domain_errors"
-	"github.com/Oleg2210/gophermart/internal/domain/entities"
+	"github.com/Oleg2210/gophermart/internal/domain"
 )
 
 type PgxOrderRepository struct {
 	tx *PgxTx
 }
 
-func (r *PgxOrderRepository) Create(ctx context.Context, order entities.Order) error {
+func (r *PgxOrderRepository) Create(ctx context.Context, order domain.Order) error {
 	var existingUserID string
 	err := r.tx.tx.QueryRowContext(
 		ctx,
@@ -24,9 +23,9 @@ func (r *PgxOrderRepository) Create(ctx context.Context, order entities.Order) e
 
 	if err == nil {
 		if existingUserID == order.UserID {
-			return domainerrors.ErrOrderIDExists
+			return domain.ErrOrderIDExists
 		}
-		return domainerrors.ErrOrderIDBelongsOther
+		return domain.ErrOrderIDBelongsOther
 	}
 
 	if err != sql.ErrNoRows {
@@ -49,8 +48,8 @@ func (r *PgxOrderRepository) Create(ctx context.Context, order entities.Order) e
 	return err
 }
 
-func (r *PgxOrderRepository) GetByID(ctx context.Context, orderID string) (entities.Order, error) {
-	var order entities.Order
+func (r *PgxOrderRepository) GetByID(ctx context.Context, orderID string) (domain.Order, error) {
+	var order domain.Order
 	query := `
         SELECT id, user_id, status, amount, created
         FROM orders
@@ -66,15 +65,15 @@ func (r *PgxOrderRepository) GetByID(ctx context.Context, orderID string) (entit
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return entities.Order{}, domainerrors.ErrOrderIDDoesNotExist
+			return domain.Order{}, domain.ErrOrderIDDoesNotExist
 		}
-		return entities.Order{}, err
+		return domain.Order{}, err
 	}
 
 	return order, nil
 }
 
-func (r *PgxOrderRepository) ChangeOrder(ctx context.Context, order entities.Order) error {
+func (r *PgxOrderRepository) ChangeOrder(ctx context.Context, order domain.Order) error {
 	query := `
         UPDATE orders
         SET status=$1, amount=$2
@@ -91,13 +90,13 @@ func (r *PgxOrderRepository) ChangeOrder(ctx context.Context, order entities.Ord
 	}
 
 	if affected == 0 {
-		return domainerrors.ErrOrderIDDoesNotExist
+		return domain.ErrOrderIDDoesNotExist
 	}
 
 	return nil
 }
 
-func (r *PgxOrderRepository) GetByUserID(ctx context.Context, userID string) ([]entities.Order, error) {
+func (r *PgxOrderRepository) GetByUserID(ctx context.Context, userID string) ([]domain.Order, error) {
 	query := `
         SELECT id, user_id, status, amount, created
         FROM orders
@@ -110,9 +109,9 @@ func (r *PgxOrderRepository) GetByUserID(ctx context.Context, userID string) ([]
 	}
 	defer rows.Close()
 
-	var orders []entities.Order
+	var orders []domain.Order
 	for rows.Next() {
-		var o entities.Order
+		var o domain.Order
 		if err := rows.Scan(&o.ID, &o.UserID, &o.Status, &o.Amount, &o.Created); err != nil {
 			return nil, err
 		}
@@ -126,7 +125,7 @@ func (r *PgxOrderRepository) GetByUserID(ctx context.Context, userID string) ([]
 	return orders, nil
 }
 
-func (r *PgxOrderRepository) GetOrders(ctx context.Context, limit int, statuses []string) ([]entities.Order, error) {
+func (r *PgxOrderRepository) GetOrders(ctx context.Context, limit int, statuses []string) ([]domain.Order, error) {
 	if len(statuses) == 0 {
 		return nil, nil
 	}
@@ -152,9 +151,9 @@ func (r *PgxOrderRepository) GetOrders(ctx context.Context, limit int, statuses 
 	}
 	defer rows.Close()
 
-	var orders []entities.Order
+	var orders []domain.Order
 	for rows.Next() {
-		var o entities.Order
+		var o domain.Order
 		if err := rows.Scan(&o.ID, &o.UserID, &o.Status, &o.Amount, &o.Created); err != nil {
 			return nil, err
 		}

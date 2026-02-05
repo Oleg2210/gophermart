@@ -8,11 +8,9 @@ import (
 	"github.com/Oleg2210/gophermart/internal/tools"
 )
 
-const UserID = "UserID"
-
 type contextKey string
 
-const contextUserID contextKey = UserID
+const contextUserID contextKey = "UserID"
 
 func AuthMiddleware(secret []byte) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {

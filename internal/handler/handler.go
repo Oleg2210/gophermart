@@ -40,12 +40,12 @@ func parseRequest(a *App, w http.ResponseWriter, r *http.Request) (string, strin
 
 	var req serializers.AuthRequest
 	if err := req.UnmarshalJSON(body); err != nil {
-		http.Error(w, "invalid json", http.StatusBadRequest)
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return "", "", err
 	}
 
 	if req.Login == "" || req.Password == "" {
-		http.Error(w, "login and password required", http.StatusBadRequest)
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return "", "", errors.New("login and password required")
 	}
 
@@ -56,7 +56,7 @@ func setToken(userID string, a *App, w http.ResponseWriter, r *http.Request) {
 	token, err := tools.GenerateJWT(userID, a.projectSettings.AuthSecret, a.projectSettings.AuthTokenLife)
 	if err != nil {
 		a.logger.Error("failed to generate jwt", zap.Error(err))
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -74,12 +74,12 @@ func (a *App) HandleRegister(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if errors.Is(err, domain.ErrLoginAlreadyExists) {
-			http.Error(w, "invalid json", http.StatusConflict)
+			http.Error(w, http.StatusText(http.StatusConflict), http.StatusConflict)
 			return
 		}
 
 		a.logger.Error("failed to register", zap.Error(err))
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -96,12 +96,12 @@ func (a *App) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if errors.Is(err, domain.ErrLoginDoesNotExist) || errors.Is(err, domain.ErrLoginWrongPassword) {
-			http.Error(w, "wrong login or password", http.StatusUnauthorized)
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return
 		}
 
 		a.logger.Error("failed to login", zap.Error(err))
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -122,7 +122,7 @@ func (a *App) HandleRegisterOrder(w http.ResponseWriter, r *http.Request) {
 
 	if !ok {
 		a.logger.Error("failed to get userID")
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -135,7 +135,7 @@ func (a *App) HandleRegisterOrder(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if errors.Is(err, domain.ErrOrderIDBelongsOther) {
-			http.Error(w, "order registred by another user", http.StatusConflict)
+			http.Error(w, http.StatusText(http.StatusConflict), http.StatusConflict)
 			return
 		}
 
@@ -158,7 +158,7 @@ func (a *App) HandleListOrders(w http.ResponseWriter, r *http.Request) {
 
 	if !ok {
 		a.logger.Error("failed to get userID")
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -214,7 +214,7 @@ func (a *App) HandleGetBalance(w http.ResponseWriter, r *http.Request) {
 
 	if !ok {
 		a.logger.Error("failed to get userID")
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -256,12 +256,12 @@ func (a *App) HandleMakeWithdraw(w http.ResponseWriter, r *http.Request) {
 	var req serializers.WithdrawRequest
 
 	if err := req.UnmarshalJSON(body); err != nil {
-		http.Error(w, "invalid json", http.StatusBadRequest)
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
 	if req.Sum.LessThanOrEqual(decimal.NewFromInt(0)) {
-		http.Error(w, "wrong sum", http.StatusBadRequest)
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
@@ -270,7 +270,7 @@ func (a *App) HandleMakeWithdraw(w http.ResponseWriter, r *http.Request) {
 
 	if !ok {
 		a.logger.Error("failed to get userID")
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -278,12 +278,12 @@ func (a *App) HandleMakeWithdraw(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if errors.Is(err, domain.ErrOrderIDWrongFormat) || errors.Is(err, domain.ErrWithdrawAlreadyExists) {
-			http.Error(w, "wrong order id", http.StatusUnprocessableEntity)
+			http.Error(w, http.StatusText(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
 			return
 		}
 
 		if errors.Is(err, domain.ErrWithdrawNotEnoughBalance) {
-			http.Error(w, "wrong order id", http.StatusPaymentRequired)
+			http.Error(w, http.StatusText(http.StatusPaymentRequired), http.StatusPaymentRequired)
 			return
 		}
 
@@ -300,7 +300,7 @@ func (a *App) HandleListWithdraws(w http.ResponseWriter, r *http.Request) {
 
 	if !ok {
 		a.logger.Error("failed to get userID")
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 

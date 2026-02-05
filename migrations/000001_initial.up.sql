@@ -1,8 +1,8 @@
 -- Users
 CREATE TABLE users (
-    id TEXT PRIMARY KEY,
-    login TEXT NOT NULL UNIQUE,
-    hashed_password TEXT NOT NULL,
+    id VARCHAR(64) PRIMARY KEY,
+    login VARCHAR(64) NOT NULL UNIQUE,
+    hashed_password VARCHAR(512) NOT NULL,
     balance NUMERIC(12,2) NOT NULL DEFAULT 0,
     withdraw NUMERIC(12,2) NOT NULL DEFAULT 0
 );
@@ -13,9 +13,9 @@ CREATE INDEX idx_users_login ON users(login);
 
 -- Orders
 CREATE TABLE orders (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    status TEXT NOT NULL,
+    id VARCHAR(64) PRIMARY KEY,
+    user_id VARCHAR(64) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    status VARCHAR(64) NOT NULL,
     created TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     amount NUMERIC(12,2) NOT NULL
 );
@@ -27,8 +27,8 @@ CREATE INDEX idx_orders_user_created ON orders(user_id, created DESC);
 
 -- Withdraws
 CREATE TABLE withdraws (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    id VARCHAR(64) PRIMARY KEY,
+    user_id VARCHAR(64) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     created TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     amount NUMERIC(12,2) NOT NULL
 );

@@ -3,13 +3,21 @@ package db
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+	"time"
 
 	domainrepository "github.com/Oleg2210/gophermart/internal/domain/domain_repository"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
+)
+
+const (
+	retryCount int           = 3
+	retryTime  time.Duration = 50 * time.Millisecond
 )
 
 type PgxTxManager struct {
@@ -50,19 +58,22 @@ func NewPgxTxManager(dsn string) (*PgxTxManager, error) {
 }
 
 func (m *PgxTxManager) WithTx(ctx context.Context, fn func(tx domainrepository.Tx) error) error {
-	sqlTx, err := m.db.BeginTx(ctx, &sql.TxOptions{})
-	if err != nil {
+	return retry(ctx, retryCount, retryTime, func() error {
+		sqlTx, err := m.db.BeginTx(ctx, &sql.TxOptions{})
+		if err != nil {
+			return err
+		}
+
+		tx := &PgxTx{tx: sqlTx}
+
+		if err := fn(tx); err != nil {
+			_ = sqlTx.Rollback()
+			return err
+		}
+
+		err = sqlTx.Commit()
 		return err
-	}
-
-	tx := &PgxTx{tx: sqlTx}
-
-	if err := fn(tx); err != nil {
-		_ = sqlTx.Rollback()
-		return err
-	}
-
-	return sqlTx.Commit()
+	})
 }
 
 type PgxTx struct {
@@ -72,3 +83,39 @@ type PgxTx struct {
 func (tx *PgxTx) User() domainrepository.UserRepository         { return &PgxUserRepository{tx} }
 func (tx *PgxTx) Order() domainrepository.OrderRepository       { return &PgxOrderRepository{tx} }
 func (tx *PgxTx) Withdraw() domainrepository.WithdrawRepository { return &PgxWithdrawRepository{tx} }
+
+func retry(ctx context.Context, attempts int, delay time.Duration, fn func() error) error {
+	var err error
+
+	for i := 0; i < attempts; i++ {
+		if err = fn(); err == nil {
+			return nil
+		}
+
+		if !isRetryable(err) {
+			return err
+		}
+
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(delay):
+			delay *= 2
+		}
+	}
+
+	return err
+}
+
+func isRetryable(err error) bool {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		switch pgErr.Code {
+		case "40001": // serialization_failure
+		case "40P01": // deadlock_detected
+		case "08006": // connection failure
+			return true
+		}
+	}
+	return false
+}

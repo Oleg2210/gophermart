@@ -22,9 +22,9 @@ import (
 	"go.uber.org/zap"
 )
 
-func chooseTransactionManager() domainrepository.TxManager {
-	if config.DatabaseInfo != "" {
-		manager, err := db.NewPgxTxManager(config.DatabaseInfo)
+func chooseTransactionManager(projectSettings config.ProjectSettings) domainrepository.TxManager {
+	if projectSettings.DatabaseInfo != "" {
+		manager, err := db.NewPgxTxManager(projectSettings.DatabaseInfo)
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to create db manager: %v\n", err)
@@ -38,7 +38,6 @@ func chooseTransactionManager() domainrepository.TxManager {
 
 func StartApp() {
 	decimal.MarshalJSONWithoutQuotes = true
-	config.Load()
 
 	logger, err := zap.NewProduction()
 	if err != nil {
@@ -46,11 +45,17 @@ func StartApp() {
 		os.Exit(1)
 	}
 
-	txManager := chooseTransactionManager()
+	projectSettings, err := config.Load()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to load settings: %v\n", err)
+		os.Exit(1)
+	}
+
+	txManager := chooseTransactionManager(projectSettings)
 	hasher := tools.NewBcryptHasher()
 	serivce := services.NewService(hasher, txManager)
 
-	app := handler.App{Service: serivce, Logger: logger}
+	app := handler.App{Service: serivce, Logger: logger, ProjectSettings: projectSettings}
 
 	router := chi.NewRouter()
 	router.Use(loggingmiddleware.LoggingMiddleware(logger))
@@ -58,7 +63,7 @@ func StartApp() {
 	router.Post("/api/user/login", app.HandleLogin)
 
 	router.Group(func(r chi.Router) {
-		r.Use(authmiddleware.AuthMiddleware([]byte(config.AuthSecret)))
+		r.Use(authmiddleware.AuthMiddleware([]byte(projectSettings.AuthSecret)))
 		r.Post("/api/user/orders", app.HandleRegisterOrder)
 		r.Get("/api/user/orders", app.HandleListOrders)
 		r.Get("/api/user/balance", app.HandleGetBalance)
@@ -68,10 +73,10 @@ func StartApp() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	accuralapp.StartAccural(ctx, config.AccuralAddress, *serivce, *logger)
+	accuralapp.StartAccural(ctx, projectSettings.AccuralAddress, *serivce, *logger)
 
 	server := &http.Server{
-		Addr:         config.RunAddress,
+		Addr:         projectSettings.RunAddress,
 		Handler:      router,
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 45 * time.Second,

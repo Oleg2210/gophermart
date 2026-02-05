@@ -2,19 +2,19 @@ package config
 
 import (
 	"flag"
-	"log"
+	"fmt"
 	"time"
 
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
-var (
+type ProjectSettings struct {
 	RunAddress     string
 	AccuralAddress string
 	DatabaseInfo   string
 	AuthSecret     []byte
 	AuthTokenLife  time.Duration
-)
+}
 
 type envConfig struct {
 	RunAddress     string `env:"RUN_ADDRESS"`
@@ -23,31 +23,34 @@ type envConfig struct {
 	AuthSecret     []byte `env:"AUTH_SECRET"`
 }
 
-func Load() {
-	flag.StringVar(&RunAddress, "a", ":8080", "server address")
-	flag.StringVar(&DatabaseInfo, "d", "", "database dsn")
-	flag.StringVar(&AccuralAddress, "r", "", "accural system address")
-	flag.StringVar(&AccuralAddress, "s", "SECRET", "auth secret")
+func Load() (ProjectSettings, error) {
+	settings := ProjectSettings{}
+	flag.StringVar(&settings.RunAddress, "a", ":8080", "server address")
+	flag.StringVar(&settings.RunAddress, "d", "", "database dsn")
+	flag.StringVar(&settings.RunAddress, "r", "", "accural system address")
+	flag.StringVar(&settings.RunAddress, "s", "SECRET", "auth secret")
 
 	flag.Parse()
 
 	var e envConfig
 	if err := cleanenv.ReadEnv(&e); err != nil {
-		log.Fatalf("config error: %v", err)
+		return settings, fmt.Errorf("config error: %w", err)
 	}
 
 	if e.RunAddress != "" {
-		RunAddress = e.RunAddress
+		settings.RunAddress = e.RunAddress
 	}
 	if e.DatabaseInfo != "" {
-		DatabaseInfo = e.DatabaseInfo
+		settings.DatabaseInfo = e.DatabaseInfo
 	}
 	if e.AccuralAddress != "" {
-		AccuralAddress = e.AccuralAddress
+		settings.AccuralAddress = e.AccuralAddress
 	}
 	if len(e.AuthSecret) > 0 {
-		AuthSecret = e.AuthSecret
+		settings.AuthSecret = e.AuthSecret
 	}
 
-	AuthTokenLife = 24 * time.Hour
+	settings.AuthTokenLife = 24 * time.Hour
+
+	return settings, nil
 }

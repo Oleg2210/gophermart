@@ -17,8 +17,9 @@ import (
 )
 
 type App struct {
-	Service *services.Service
-	Logger  *zap.Logger
+	Service         *services.Service
+	Logger          *zap.Logger
+	ProjectSettings config.ProjectSettings
 }
 
 func parseRequest(a *App, w http.ResponseWriter, r *http.Request) (string, string, error) {
@@ -45,7 +46,7 @@ func parseRequest(a *App, w http.ResponseWriter, r *http.Request) (string, strin
 }
 
 func setToken(userID string, a *App, w http.ResponseWriter, r *http.Request) {
-	token, err := tools.GenerateJWT(userID, config.AuthSecret, config.AuthTokenLife)
+	token, err := tools.GenerateJWT(userID, a.ProjectSettings.AuthSecret, a.ProjectSettings.AuthTokenLife)
 	if err != nil {
 		a.Logger.Error("failed to generate jwt", zap.Error(err))
 		http.Error(w, "internal error", http.StatusInternalServerError)

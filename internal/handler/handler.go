@@ -16,16 +16,24 @@ import (
 )
 
 type App struct {
-	Service         *domain.Service
-	Logger          *zap.Logger
-	ProjectSettings config.ProjectSettings
+	service         *domain.Service
+	logger          *zap.Logger
+	projectSettings config.ProjectSettings
+}
+
+func NewApp(service *domain.Service, logger *zap.Logger, settigns config.ProjectSettings) *App {
+	return &App{
+		service:         service,
+		logger:          logger,
+		projectSettings: settigns,
+	}
 }
 
 func parseRequest(a *App, w http.ResponseWriter, r *http.Request) (string, string, error) {
 	body, err := io.ReadAll(r.Body)
 
 	if err != nil {
-		a.Logger.Error("failed to read request body", zap.Error(err))
+		a.logger.Error("failed to read request body", zap.Error(err))
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return "", "", err
 	}
@@ -45,9 +53,9 @@ func parseRequest(a *App, w http.ResponseWriter, r *http.Request) (string, strin
 }
 
 func setToken(userID string, a *App, w http.ResponseWriter, r *http.Request) {
-	token, err := tools.GenerateJWT(userID, a.ProjectSettings.AuthSecret, a.ProjectSettings.AuthTokenLife)
+	token, err := tools.GenerateJWT(userID, a.projectSettings.AuthSecret, a.projectSettings.AuthTokenLife)
 	if err != nil {
-		a.Logger.Error("failed to generate jwt", zap.Error(err))
+		a.logger.Error("failed to generate jwt", zap.Error(err))
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
@@ -62,7 +70,7 @@ func (a *App) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, err := a.Service.RegisterUser(r.Context(), login, password)
+	u, err := a.service.RegisterUser(r.Context(), login, password)
 
 	if err != nil {
 		if errors.Is(err, domain.ErrLoginAlreadyExists) {
@@ -70,7 +78,7 @@ func (a *App) HandleRegister(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		a.Logger.Error("failed to register", zap.Error(err))
+		a.logger.Error("failed to register", zap.Error(err))
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
@@ -84,7 +92,7 @@ func (a *App) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, err := a.Service.Login(r.Context(), login, password)
+	u, err := a.service.Login(r.Context(), login, password)
 
 	if err != nil {
 		if errors.Is(err, domain.ErrLoginDoesNotExist) || errors.Is(err, domain.ErrLoginWrongPassword) {
@@ -92,7 +100,7 @@ func (a *App) HandleLogin(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		a.Logger.Error("failed to login", zap.Error(err))
+		a.logger.Error("failed to login", zap.Error(err))
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
@@ -104,7 +112,7 @@ func (a *App) HandleRegisterOrder(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 
 	if err != nil {
-		a.Logger.Error("failed to read request body", zap.Error(err))
+		a.logger.Error("failed to read request body", zap.Error(err))
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
@@ -113,12 +121,12 @@ func (a *App) HandleRegisterOrder(w http.ResponseWriter, r *http.Request) {
 	userID, ok := authmiddleware.GetUserIDFromContext(ctx)
 
 	if !ok {
-		a.Logger.Error("failed to get userID")
+		a.logger.Error("failed to get userID")
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 
-	err = a.Service.RegisterOrder(ctx, userID, string(body))
+	err = a.service.RegisterOrder(ctx, userID, string(body))
 
 	if err != nil {
 		if errors.Is(err, domain.ErrOrderIDWrongFormat) {
@@ -136,7 +144,7 @@ func (a *App) HandleRegisterOrder(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		a.Logger.Error("failed to register order", zap.Error(err))
+		a.logger.Error("failed to register order", zap.Error(err))
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -149,15 +157,15 @@ func (a *App) HandleListOrders(w http.ResponseWriter, r *http.Request) {
 	userID, ok := authmiddleware.GetUserIDFromContext(ctx)
 
 	if !ok {
-		a.Logger.Error("failed to get userID")
+		a.logger.Error("failed to get userID")
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 
-	orders, err := a.Service.GetOrders(ctx, userID)
+	orders, err := a.service.GetOrders(ctx, userID)
 
 	if err != nil {
-		a.Logger.Error("failed to get orders", zap.Error(err))
+		a.logger.Error("failed to get orders", zap.Error(err))
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -190,7 +198,7 @@ func (a *App) HandleListOrders(w http.ResponseWriter, r *http.Request) {
 
 	jsonBytes, err := respItems.MarshalJSON()
 	if err != nil {
-		a.Logger.Error("error in order list response serializing", zap.Error(err))
+		a.logger.Error("error in order list response serializing", zap.Error(err))
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -205,15 +213,15 @@ func (a *App) HandleGetBalance(w http.ResponseWriter, r *http.Request) {
 	userID, ok := authmiddleware.GetUserIDFromContext(ctx)
 
 	if !ok {
-		a.Logger.Error("failed to get userID")
+		a.logger.Error("failed to get userID")
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 
-	user, err := a.Service.GetUser(ctx, userID)
+	user, err := a.service.GetUser(ctx, userID)
 
 	if err != nil {
-		a.Logger.Error("failed to get user", zap.Error(err))
+		a.logger.Error("failed to get user", zap.Error(err))
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -226,7 +234,7 @@ func (a *App) HandleGetBalance(w http.ResponseWriter, r *http.Request) {
 	jsonBytes, err := resp.MarshalJSON()
 
 	if err != nil {
-		a.Logger.Error("error in balance response serializing", zap.Error(err))
+		a.logger.Error("error in balance response serializing", zap.Error(err))
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -240,7 +248,7 @@ func (a *App) HandleMakeWithdraw(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 
 	if err != nil {
-		a.Logger.Error("failed to read request body", zap.Error(err))
+		a.logger.Error("failed to read request body", zap.Error(err))
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
@@ -261,12 +269,12 @@ func (a *App) HandleMakeWithdraw(w http.ResponseWriter, r *http.Request) {
 	userID, ok := authmiddleware.GetUserIDFromContext(ctx)
 
 	if !ok {
-		a.Logger.Error("failed to get userID")
+		a.logger.Error("failed to get userID")
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 
-	err = a.Service.MakeWithdraw(ctx, userID, req.Order, req.Sum)
+	err = a.service.MakeWithdraw(ctx, userID, req.Order, req.Sum)
 
 	if err != nil {
 		if errors.Is(err, domain.ErrOrderIDWrongFormat) || errors.Is(err, domain.ErrWithdrawAlreadyExists) {
@@ -279,7 +287,7 @@ func (a *App) HandleMakeWithdraw(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		a.Logger.Error("error while making withdraw", zap.Error(err))
+		a.logger.Error("error while making withdraw", zap.Error(err))
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -291,15 +299,15 @@ func (a *App) HandleListWithdraws(w http.ResponseWriter, r *http.Request) {
 	userID, ok := authmiddleware.GetUserIDFromContext(ctx)
 
 	if !ok {
-		a.Logger.Error("failed to get userID")
+		a.logger.Error("failed to get userID")
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 
-	withdraws, err := a.Service.GetWithdraws(ctx, userID)
+	withdraws, err := a.service.GetWithdraws(ctx, userID)
 
 	if err != nil {
-		a.Logger.Error("error while getting withdrawls", zap.Error(err))
+		a.logger.Error("error while getting withdrawls", zap.Error(err))
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -323,7 +331,7 @@ func (a *App) HandleListWithdraws(w http.ResponseWriter, r *http.Request) {
 
 	jsonBytes, err := respItems.MarshalJSON()
 	if err != nil {
-		a.Logger.Error("error in withdrawls list response serializing", zap.Error(err))
+		a.logger.Error("error in withdrawls list response serializing", zap.Error(err))
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}

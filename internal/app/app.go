@@ -54,7 +54,7 @@ func StartApp() {
 	hasher := tools.NewBcryptHasher()
 	serivce := domain.NewService(hasher, txManager)
 
-	app := handler.App{Service: serivce, Logger: logger, ProjectSettings: projectSettings}
+	app := handler.NewApp(serivce, logger, projectSettings)
 
 	router := chi.NewRouter()
 	router.Use(loggingmiddleware.LoggingMiddleware(logger))

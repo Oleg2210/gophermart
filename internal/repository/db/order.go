@@ -53,7 +53,7 @@ func (r *PgxOrderRepository) GetByID(ctx context.Context, orderID string) (domai
 	query := `
         SELECT id, user_id, status, amount, created
         FROM orders
-        WHERE id = $1
+        WHERE id = $1 FOR UPDATE
     `
 	err := r.tx.tx.QueryRowContext(ctx, query, orderID).Scan(
 		&order.ID,

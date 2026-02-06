@@ -130,15 +130,7 @@ func processJob(a *Accrual) {
 			a.logger.Info("closing accural worker within context singal")
 			return
 		case orderID := <-a.job:
-			processed, err := a.service.IsOrderProcessed(a.ctx, orderID)
-
-			if err != nil {
-				a.logger.Error("failed to check if order processed: ", zap.Error(err))
-			}
-
-			if !processed {
-				processOrder(a, orderID, *client)
-			}
+			processOrder(a, orderID, *client)
 		}
 	}
 }

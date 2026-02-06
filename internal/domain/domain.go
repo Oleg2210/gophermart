@@ -226,6 +226,24 @@ func (service *Service) GetOrders(ctx context.Context, userID string) ([]Order, 
 	return orders, err
 }
 
+func (service *Service) IsOrderProcessed(ctx context.Context, orderID string) (bool, error) {
+	var o Order
+	err := service.txManager.WithTx(ctx, func(tx Tx) error {
+		orderRepo := tx.Order()
+		order, err := orderRepo.GetByID(ctx, orderID)
+		if err == nil {
+			o = order
+		}
+		return err
+	})
+
+	if err != nil {
+		return false, err
+	}
+
+	return o.Status == OrderInvalidStatus || o.Status == OrderProcessedStatus, nil
+}
+
 func (service *Service) GetUnprocessedOrders(ctx context.Context, ordersCount int) ([]Order, error) {
 	var orders []Order
 

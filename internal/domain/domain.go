@@ -22,12 +22,11 @@ var ErrWithdrawAlreadyExists = errors.New("withdraw with suchnumber already exis
 var ErrWithdrawNotEnoughBalance = errors.New("not enough balance for withdraw")
 
 const (
-	OrderNewStatus         = "NEW"
-	OrderRegistredStatus   = "REGISTERED"
-	OrderProcessingStatus  = "PROCESSING"
-	OrderProcessedStatus   = "PROCESSED"
-	OrderInvalidStatus     = "INVALID"
-	UnprocessedOrdersCount = 20
+	OrderNewStatus        = "NEW"
+	OrderRegistredStatus  = "REGISTERED"
+	OrderProcessingStatus = "PROCESSING"
+	OrderProcessedStatus  = "PROCESSED"
+	OrderInvalidStatus    = "INVALID"
 )
 
 type User struct {
@@ -227,12 +226,12 @@ func (service *Service) GetOrders(ctx context.Context, userID string) ([]Order, 
 	return orders, err
 }
 
-func (service *Service) GetUnprocessedOrders(ctx context.Context) ([]Order, error) {
+func (service *Service) GetUnprocessedOrders(ctx context.Context, ordersCount int) ([]Order, error) {
 	var orders []Order
 
 	err := service.txManager.WithTx(ctx, func(tx Tx) error {
 		orderRepo := tx.Order()
-		o, err := orderRepo.GetOrders(ctx, UnprocessedOrdersCount, []string{OrderNewStatus, OrderProcessingStatus})
+		o, err := orderRepo.GetOrders(ctx, ordersCount, []string{OrderNewStatus, OrderProcessingStatus})
 		orders = o
 		return err
 	})

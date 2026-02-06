@@ -80,21 +80,7 @@ func NewAccrual(ctx context.Context, baseURL string, service domain.Service, log
 }
 
 func StartAccural(ctx context.Context, baseURL string, service domain.Service, logger zap.Logger) {
-	select {
-	case <-ctx.Done():
-		logger.Info("closing accural jobs creator within context singal")
-		return
-	default:
-	}
-
-	a := NewAccrual(ctx, baseURL, service, logger)
-	defer close(a.job)
-
-	for i := 0; i < workersCount; i++ {
-		go processJob(a)
-	}
-
-	for {
+	go func() {
 		select {
 		case <-ctx.Done():
 			logger.Info("closing accural jobs creator within context singal")
@@ -102,21 +88,37 @@ func StartAccural(ctx context.Context, baseURL string, service domain.Service, l
 		default:
 		}
 
-		orders, err := service.GetUnprocessedOrders(ctx, workersCount)
+		a := NewAccrual(ctx, baseURL, service, logger)
+		defer close(a.job)
 
-		if err != nil {
-			logger.Error("failed to get unprocessed orders", zap.Error(err))
-			continue
+		for i := 0; i < workersCount; i++ {
+			go processJob(a)
 		}
 
-		if len(orders) == 0 {
-			time.Sleep(time.Duration(noOrdersTimeSleep) * time.Second)
-		}
+		for {
+			select {
+			case <-ctx.Done():
+				logger.Info("closing accural jobs creator within context singal")
+				return
+			default:
+			}
 
-		for _, o := range orders {
-			a.job <- o.ID
+			orders, err := service.GetUnprocessedOrders(ctx, workersCount)
+
+			if err != nil {
+				logger.Error("failed to get unprocessed orders", zap.Error(err))
+				continue
+			}
+
+			if len(orders) == 0 {
+				time.Sleep(time.Duration(noOrdersTimeSleep) * time.Second)
+			}
+
+			for _, o := range orders {
+				a.job <- o.ID
+			}
 		}
-	}
+	}()
 }
 
 func processJob(a *Accrual) {

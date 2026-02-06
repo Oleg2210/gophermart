@@ -138,6 +138,7 @@ func processOrder(a *Accrual, orderID string, client Client) {
 		select {
 		case <-a.ctx.Done():
 			a.logger.Info("closing accural worker within context singal")
+			return
 		default:
 		}
 

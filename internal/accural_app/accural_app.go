@@ -111,7 +111,14 @@ func StartAccural(ctx context.Context, baseURL string, service domain.Service, l
 			}
 
 			if len(orders) == 0 {
-				time.Sleep(time.Duration(noOrdersTimeSleep) * time.Second)
+				timer := time.NewTimer(time.Duration(noOrdersTimeSleep) * time.Second)
+				select {
+				case <-ctx.Done():
+					timer.Stop()
+					logger.Info("closing accural jobs creator within context signal")
+					return
+				case <-timer.C:
+				}
 			}
 
 			for _, o := range orders {
